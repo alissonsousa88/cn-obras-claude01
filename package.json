@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test --tsconfig tsconfig.json tests/*.test.ts",
+    "test:e2e": "node tests/fluxo.e2e.mjs",
     "seed": "tsx src/server/store/seedCli.ts"
   },
   "dependencies": {
@@ -17,6 +18,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.10",

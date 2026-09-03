@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/**
+ * Design system do CN Obras.
+ *
+ * Paleta institucional sóbria: ardósia como base neutra, âmbar-terracota como
+ * acento (remete a obra/construção sem cair em laranja de alerta). As cores de
+ * estado são reservadas para significado operacional — nunca decorativas.
+ * Assim, quando algo aparece vermelho na tela, é porque de fato é crítico.
+ */
+@theme {
+  --color-tinta-50: #f6f7f9;
+  --color-tinta-100: #eceef2;
+  --color-tinta-200: #d5dae3;
+  --color-tinta-300: #b0b9c9;
+  --color-tinta-400: #8592aa;
+  --color-tinta-500: #65738f;
+  --color-tinta-600: #505c76;
+  --color-tinta-700: #424b60;
+  --color-tinta-800: #394051;
+  --color-tinta-900: #1e2330;
+  --color-tinta-950: #14171f;
+
+  --color-obra-50: #fdf6ef;
+  --color-obra-100: #fae9d7;
+  --color-obra-200: #f3d0ae;
+  --color-obra-300: #eab07b;
+  --color-obra-400: #e08a4a;
+  --color-obra-500: #d96f2b;
+  --color-obra-600: #c55620;
+  --color-obra-700: #a3411d;
+  --color-obra-800: #83361e;
+  --color-obra-900: #6b2e1c;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-tinta-50);
+  color: var(--color-tinta-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hierarquia tipográfica: poucos tamanhos, diferenças claras. */
+.titulo-tela {
+  font-size: 1.75rem;
+  line-height: 2.1rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.titulo-secao {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-tinta-500);
+}
+
+/* Cartão padrão: sem bordas fortes, separação por elevação sutil. */
+.cartao {
+  background: #fff;
+  border: 1px solid var(--color-tinta-200);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px rgb(20 23 31 / 0.04);
+}
+
+.foco-visivel:focus-visible {
+  outline: 2px solid var(--color-obra-500);
+  outline-offset: 2px;
+}
+
+/* Barra lateral de criticidade nos cartões de atenção. */
+.faixa-critico { box-shadow: inset 4px 0 0 0 #dc2626; }
+.faixa-alto    { box-shadow: inset 4px 0 0 0 #ea580c; }
+.faixa-medio   { box-shadow: inset 4px 0 0 0 #ca8a04; }
+.faixa-info    { box-shadow: inset 4px 0 0 0 #2563eb; }
+
+@media print {
+  .sem-impressao { display: none; }
+}

@@ -5,7 +5,6 @@
  * transação. Nenhuma escrita de demanda passa por fora daqui.
  */
 import {
-  contextoDemanda as ctxFluxo,
   movimentoDeTriagem,
   podeConcluir,
   prazoDe,
@@ -487,5 +486,3 @@ export function cancelarDemanda(
   });
   reconciliarSinais(base, instante);
 }
-
-export { ctxFluxo };

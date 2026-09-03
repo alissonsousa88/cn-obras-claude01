@@ -14,6 +14,7 @@
  *   - um destinatário, sempre que houver alguém identificável para agir.
  */
 import { contarReincidencias, detectarReincidencias } from "./analiseHistorico";
+import { podeConcluir } from "./motorFluxo";
 import { DIA, HORA, REGRAS } from "./regras";
 import type {
   Demanda,
@@ -142,13 +143,41 @@ export function avaliarSinais(snap: SnapshotOperacional): SinalDesejado[] {
     const abertos = movs.filter(
       (m) => m.estado === "PENDENTE" || m.estado === "SUSPENSO",
     );
-    const impedimentosDaDemanda = snap.impedimentos.filter(
-      (i) => i.demandaId === demanda.id && i.estado === "ATIVO",
+    const impedimentosTodos = snap.impedimentos.filter(
+      (i) => i.demandaId === demanda.id,
     );
+    const impedimentosDaDemanda = impedimentosTodos.filter((i) => i.estado === "ATIVO");
+    const categoria = categoriaPorId.get(demanda.categoriaId);
+
+    // Uma demanda cujo fluxo chegou ao fim (execução feita, resultado validado,
+    // nada pendente) não está sem direção: está esperando o registro do
+    // resultado. São situações diferentes e merecem sinais diferentes — dizer
+    // "defina o próximo passo" aqui seria orientação errada.
+    const prontaParaConclusao =
+      categoria !== undefined &&
+      podeConcluir({
+        demanda,
+        movimentos: movs,
+        impedimentos: impedimentosTodos,
+        aprovacoes: snap.aprovacoes.filter((a) => a.demandaId === demanda.id),
+        categoria,
+      }).pode;
+
+    if (prontaParaConclusao) {
+      sinais.push({
+        chave: `RETORNO_NECESSARIO:resultado:${demanda.id}`,
+        tipo: "RETORNO_NECESSARIO",
+        nivel: "ALTO",
+        mensagem: `${demanda.titulo} foi resolvida, mas falta registrar o resultado para concluir`,
+        demandaId: demanda.id,
+        destinatarioId: demanda.responsavelId,
+        dados: { etapa: "registro_resultado" },
+      });
+    }
 
     // Sem próximo movimento — a anomalia mais grave do modelo: a demanda está
     // viva e ninguém sabe o que deve acontecer em seguida.
-    if (abertos.length === 0 && impedimentosDaDemanda.length === 0) {
+    if (abertos.length === 0 && impedimentosDaDemanda.length === 0 && !prontaParaConclusao) {
       sinais.push({
         chave: `SEM_PROXIMO_MOVIMENTO:${demanda.id}`,
         tipo: "SEM_PROXIMO_MOVIMENTO",

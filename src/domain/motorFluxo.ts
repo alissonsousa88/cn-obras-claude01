@@ -460,26 +460,37 @@ export function podeConcluir(ctx: ContextoDemanda): ChecagemConclusao {
         .join("; ")}`,
     );
   }
-  const temExecucao = ctx.movimentos.some(
-    (m) => m.tipo === "EXECUCAO" && m.estado === "CONCLUIDO",
-  );
+  // O coração da regra "atividade executada ≠ resultado alcançado": só é
+  // possível concluir depois que alguém validou que o problema original
+  // deixou de existir. Sem esse passo, "concluído" seria apenas um status.
   const temValidacao = ctx.movimentos.some(
     (m) => m.tipo === "VALIDACAO" && m.estado === "CONCLUIDO",
   );
-  if (temExecucao && !temValidacao) {
+  if (!temValidacao) {
+    const temExecucao = ctx.movimentos.some(
+      (m) => m.tipo === "EXECUCAO" && m.estado === "CONCLUIDO",
+    );
     pendencias.push(
-      "A execução foi concluída, mas ainda falta validar se o problema foi resolvido",
+      temExecucao
+        ? "A execução foi concluída, mas ainda falta validar se o problema foi resolvido"
+        : "Ninguém validou ainda que o problema foi resolvido",
     );
   }
 
   return { pode: pendencias.length === 0, pendencias };
 }
 
-/** Uma demanda ativa sem nenhum movimento aberto está sem direção. */
+/**
+ * Uma demanda ativa sem nenhum movimento aberto está sem direção — exceto
+ * quando o fluxo já chegou ao fim e só falta registrar o resultado. Confundir
+ * as duas situações levaria a interface a pedir "defina o próximo passo"
+ * quando o passo certo é concluir.
+ */
 export function semDirecao(ctx: ContextoDemanda): boolean {
   if (ctx.demanda.estado === "CONCLUIDA" || ctx.demanda.estado === "CANCELADA") {
     return false;
   }
   if (impedimentosAtivos(ctx.impedimentos).length > 0) return false;
-  return movimentosAbertos(ctx.movimentos).length === 0;
+  if (movimentosAbertos(ctx.movimentos).length > 0) return false;
+  return !podeConcluir(ctx).pode;
 }
