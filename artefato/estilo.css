@@ -1,0 +1,12 @@
+/**
+ * Folha de estilo da versão navegável.
+ *
+ * Reaproveita integralmente o design system da aplicação (`globals.css`):
+ * mesma paleta, mesma tipografia, mesmos cartões. Aqui só declaramos onde o
+ * Tailwind deve procurar as classes usadas.
+ */
+@import "../src/app/globals.css";
+
+@source "../src/componentes";
+@source "../artefato/app.tsx";
+@source "../artefato/shims";

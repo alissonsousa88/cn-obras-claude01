@@ -6,3 +6,6 @@ next-env.d.ts
 *.tsbuildinfo
 data/*.json
 !data/.gitkeep
+
+# Saída da versão navegável (regenerada por `npm run artefato`)
+artefato/cn-obras.html

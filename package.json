@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test --tsconfig tsconfig.json tests/*.test.ts",
     "test:e2e": "node tests/fluxo.e2e.mjs",
-    "seed": "tsx src/server/store/seedCli.ts"
+    "seed": "tsx src/server/store/seedCli.ts",
+    "artefato": "tailwindcss -i artefato/estilo.css -o /tmp/app.css --minify && MINIFICAR=1 node artefato/construir.mjs artefato/app.tsx /tmp/app-bundle.min.js && node artefato/montar.mjs"
   },
   "dependencies": {
     "next": "^16.3.4",
@@ -19,10 +20,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "@tailwindcss/cli": "^4.3.3",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "esbuild": "^0.28.2",
     "tailwindcss": "^4.1.13",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
