@@ -40,7 +40,7 @@ export function CaixaImpedimento({
           {ROTULO_IMPEDIMENTO[impedimento.tipo]}
         </span>
         <span className="ml-auto text-[11px] text-red-700">
-          desde {relativo(impedimento.dataInicio)}
+          bloqueada {relativo(impedimento.dataInicio)}
         </span>
       </div>
 

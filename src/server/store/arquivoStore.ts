@@ -7,7 +7,7 @@
  *
  * Este é o único ponto do sistema que conhece o meio de armazenamento.
  */
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { baseVazia, type BaseDados, type ObrasStore } from "./port";
 import { construirSeed } from "./seed";
@@ -15,16 +15,36 @@ import { construirSeed } from "./seed";
 const CAMINHO =
   process.env.CN_OBRAS_DB ?? join(process.cwd(), "data", "cn-obras.json");
 
-/** Cache em processo: evita reler o arquivo a cada requisição. */
+/**
+ * Cache em processo: evita reler o arquivo a cada requisição.
+ *
+ * O cache é validado contra a data de modificação do arquivo. Isso importa
+ * porque o Next pode instanciar este módulo mais de uma vez no mesmo processo
+ * (o bundle das rotas de API é distinto do bundle das páginas): sem a
+ * verificação, uma escrita feita por um caminho ficaria invisível para o
+ * outro. Também faz um `npm run seed` externo ser percebido na hora.
+ */
 let cache: BaseDados | null = null;
+let cacheMtime = 0;
 /** Fila serial: garante que duas transações nunca se sobreponham. */
 let fila: Promise<unknown> = Promise.resolve();
 
+async function mtimeAtual(): Promise<number> {
+  try {
+    return (await stat(CAMINHO)).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
 async function carregar(): Promise<BaseDados> {
-  if (cache) return cache;
+  const mtime = await mtimeAtual();
+  if (cache && mtime === cacheMtime) return cache;
+
   try {
     const bruto = await readFile(CAMINHO, "utf8");
     cache = { ...baseVazia(), ...(JSON.parse(bruto) as BaseDados) };
+    cacheMtime = mtime;
   } catch (erro) {
     const naoExiste =
       typeof erro === "object" && erro !== null && "code" in erro &&
@@ -42,6 +62,7 @@ async function gravar(base: BaseDados): Promise<void> {
   const temporario = `${CAMINHO}.${process.pid}.tmp`;
   await writeFile(temporario, JSON.stringify(base, null, 2), "utf8");
   await rename(temporario, CAMINHO);
+  cacheMtime = await mtimeAtual();
 }
 
 /** Serializa a operação na fila global do processo. */

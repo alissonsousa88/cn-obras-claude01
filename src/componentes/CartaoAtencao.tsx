@@ -58,6 +58,15 @@ export function CartaoAtencao({ item }: { item: ItemAtencao }) {
           <span className="text-xs text-tinta-400">{demanda.codigo}</span>
         )}
       </div>
+
+      {item.relacionados.length > 0 && (
+        <p className="mt-2 text-[11px] text-tinta-500">
+          Também nesta demanda:{" "}
+          {item.relacionados
+            .map((s) => ROTULO_SINAL[s.tipo].toLowerCase())
+            .join(", ")}
+        </p>
+      )}
     </Link>
   );
 }

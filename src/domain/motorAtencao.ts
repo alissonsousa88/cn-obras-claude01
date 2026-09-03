@@ -39,6 +39,13 @@ export interface ItemAtencao {
   /** Verdadeiro quando este item é do próprio usuário. */
   meu: boolean;
   href: string;
+  /**
+   * Outros sinais ativos da mesma demanda, absorvidos por este item.
+   * Uma demanda bloqueada costuma gerar prazo vencido + bloqueio prolongado +
+   * impedimento sem revisão: são três leituras do mesmo fato, e mostrar três
+   * cartões seria o ruído que o produto existe para eliminar.
+   */
+  relacionados: Sinal[];
 }
 
 export type BlocoAtencao =
@@ -247,6 +254,7 @@ export function montarAtencao(
             : undefined,
         meu,
         href: destino(sinal),
+        relacionados: [],
       };
     })
     .sort((a, b) => b.peso - a.peso);
@@ -259,6 +267,13 @@ export function montarAtencao(
   };
   for (const item of itens) {
     painel[bloco(item, usuario)].push(item);
+  }
+
+  // Consolida por demanda dentro de cada bloco: um cartão por situação, com os
+  // demais sinais anexados. A ordenação já garante que o sobrevivente é o mais
+  // urgente — e é a ação dele que resolve o conjunto.
+  for (const chave of Object.keys(painel) as BlocoAtencao[]) {
+    painel[chave] = consolidarPorDemanda(painel[chave]);
   }
 
   const limitar = (lista: ItemAtencao[]) =>
@@ -276,6 +291,28 @@ export function montarAtencao(
       painel.PRECISA_DE_VOCE.length === 0 && painel.PROXIMAS_48H.length === 0,
     resumo,
   };
+}
+
+function consolidarPorDemanda(itens: ItemAtencao[]): ItemAtencao[] {
+  const principais = new Map<ID, ItemAtencao>();
+  const resultado: ItemAtencao[] = [];
+
+  for (const item of itens) {
+    // Sinais sem demanda (recorrências) não têm o que consolidar.
+    if (!item.sinal.demandaId) {
+      resultado.push(item);
+      continue;
+    }
+    const principal = principais.get(item.sinal.demandaId);
+    if (principal) {
+      principal.relacionados.push(item.sinal);
+      continue;
+    }
+    principais.set(item.sinal.demandaId, item);
+    resultado.push(item);
+  }
+
+  return resultado;
 }
 
 /**

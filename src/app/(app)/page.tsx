@@ -23,7 +23,7 @@ import {
   TituloSecao,
   Vazio,
 } from "@/componentes/primitivos";
-import { primeiroNome, prazoLegivel, saudacao } from "@/lib/formato";
+import { plural, primeiroNome, prazoLegivel, saudacao } from "@/lib/formato";
 import { exigirUsuario } from "@/server/auth";
 import { dadosPainel } from "@/server/consultas";
 
@@ -37,7 +37,8 @@ export default async function Painel() {
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        {/* A frase de resumo é limitada para não empurrar a ação principal. */}
+        <div className="max-w-xl">
           <h1 className="titulo-tela">
             {saudacao()}, {primeiroNome(usuario.nome)}
           </h1>
@@ -235,11 +236,20 @@ export default async function Painel() {
 function resumoDoDia(atencao: Awaited<ReturnType<typeof dadosPainel>>["atencao"]): string {
   const r = atencao.resumo;
   const partes: string[] = [];
-  if (r.acoesVencidas > 0) partes.push(`${r.acoesVencidas} ação(ões) com prazo ultrapassado`);
-  if (r.aprovacoesAguardando > 0) partes.push(`${r.aprovacoesAguardando} aprovação(ões) aguardando`);
-  if (r.semProximoMovimento > 0)
-    partes.push(`${r.semProximoMovimento} demanda(s) sem próximo passo`);
-  if (r.demandasBloqueadas > 0) partes.push(`${r.demandasBloqueadas} bloqueada(s)`);
+  if (r.acoesVencidas > 0) {
+    partes.push(`${plural(r.acoesVencidas, "ação", "ações")} com prazo ultrapassado`);
+  }
+  if (r.aprovacoesAguardando > 0) {
+    partes.push(
+      `${plural(r.aprovacoesAguardando, "aprovação", "aprovações")} aguardando`,
+    );
+  }
+  if (r.semProximoMovimento > 0) {
+    partes.push(`${plural(r.semProximoMovimento, "demanda")} sem próximo passo`);
+  }
+  if (r.demandasBloqueadas > 0) {
+    partes.push(plural(r.demandasBloqueadas, "bloqueada"));
+  }
   if (partes.length === 0) {
     return "A operação está em dia: nada vencido, nada bloqueado, nada sem direção.";
   }

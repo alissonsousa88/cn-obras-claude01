@@ -82,3 +82,7 @@ export function paraInputDateTime(ms: number): string {
   const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60_000);
   return d.toISOString().slice(0, 16);
 }
+
+// Pluralização vive no domínio (os motores também escrevem texto para a tela).
+export { plural } from "@/domain/plural";
+

@@ -6,6 +6,7 @@
  * vencidas viram demandas, prioridades sobem com a espera e os sinais são
  * reconciliados.
  */
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { forcarTick } from "@/server/servicos/tickRunner";
 
@@ -19,5 +20,7 @@ export async function GET(request: Request) {
     }
   }
   const resultado = await forcarTick();
+  // O tick abre ocorrências e reconcilia sinais: as telas precisam refletir isso.
+  revalidatePath("/", "layout");
   return NextResponse.json({ executadoEm: new Date().toISOString(), ...resultado });
 }

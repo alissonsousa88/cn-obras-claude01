@@ -445,19 +445,22 @@ export function podeConcluir(ctx: ContextoDemanda): ChecagemConclusao {
     pendencias.push("Esta demanda já está concluída");
   }
   const ativos = impedimentosAtivos(ctx.impedimentos);
-  if (ativos.length > 0) {
+  if (ativos.length === 1) {
+    pendencias.push("Existe um impedimento ativo que precisa ser resolvido");
+  } else if (ativos.length > 1) {
     pendencias.push(
-      `Existe ${ativos.length} impedimento(s) ativo(s) que precisam ser resolvidos`,
+      `Existem ${ativos.length} impedimentos ativos que precisam ser resolvidos`,
     );
   }
   const abertos = movimentosAbertos(ctx.movimentos).filter(
     (m) => m.tipo !== "VALIDACAO",
   );
   if (abertos.length > 0) {
+    const lista = abertos.map((m) => m.acao).join("; ");
     pendencias.push(
-      `${abertos.length} passo(s) ainda em aberto: ${abertos
-        .map((m) => m.acao)
-        .join("; ")}`,
+      abertos.length === 1
+        ? `Um passo ainda em aberto: ${lista}`
+        : `${abertos.length} passos ainda em aberto: ${lista}`,
     );
   }
   // O coração da regra "atividade executada ≠ resultado alcançado": só é

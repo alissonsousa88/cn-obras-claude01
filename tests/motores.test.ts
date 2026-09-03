@@ -356,10 +356,43 @@ test("o Motor de Atenção ordena por urgência e sempre diz quem precisa agir",
   for (const item of itens) {
     assert.ok(item.chamadaAcao.length > 0, "todo item precisa dizer o que fazer");
   }
-  // A liderança vê a aprovação que está endereçada a ela no bloco de ação.
+  // A liderança vê a aprovação endereçada a ela no bloco de ação — seja como
+  // sinal principal do cartão, seja absorvida por um sinal mais urgente da
+  // mesma demanda (o cartão sobrevivente continua pedindo a aprovação).
+  const aprovacao = painel.precisaDeVoce.find(
+    (i) =>
+      i.sinal.tipo === "APROVACAO_PENDENTE" ||
+      i.relacionados.some((s) => s.tipo === "APROVACAO_PENDENTE"),
+  );
+  assert.ok(aprovacao, "aprovação pendente precisa aparecer para quem decide");
+  assert.match(aprovacao.chamadaAcao, /aprova/i, "o cartão precisa pedir a aprovação");
+});
+
+test("o Motor de Atenção consolida vários sinais da mesma demanda em um cartão", () => {
+  const c = cenario();
+  const painel = montarAtencao(snapshotDe(c.base, AGORA), c.joao);
+
+  for (const bloco of [painel.precisaDeVoce, painel.proximas48h, painel.operacao]) {
+    const demandas = bloco
+      .map((i) => i.sinal.demandaId)
+      .filter((id): id is string => !!id);
+    assert.equal(
+      demandas.length,
+      new Set(demandas).size,
+      "a mesma demanda não pode ocupar dois cartões no mesmo bloco",
+    );
+  }
+
+  // A demanda bloqueada gera prazo vencido + bloqueio prolongado + impedimento
+  // sem revisão: três leituras do mesmo fato, um cartão só.
+  const bloqueada = c.base.demandas.find((d) => d.estado === "BLOQUEADA")!;
+  const cartao = [...painel.precisaDeVoce, ...painel.aguardandoTerceiros].find(
+    (i) => i.sinal.demandaId === bloqueada.id,
+  );
+  assert.ok(cartao, "a demanda bloqueada precisa aparecer");
   assert.ok(
-    painel.precisaDeVoce.some((i) => i.sinal.tipo === "APROVACAO_PENDENTE"),
-    "aprovação pendente precisa aparecer para quem decide",
+    cartao.relacionados.length >= 1,
+    "os sinais absorvidos ficam registrados no cartão, não somem",
   );
 });
 

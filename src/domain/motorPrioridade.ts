@@ -113,7 +113,11 @@ export function calcularPrioridade(entrada: EntradaPrioridade): CalculoPrioridad
 
   const espera = pontosEspera(abertaEm, agora);
   const diasEspera = Math.floor((agora - abertaEm) / DIA);
-  registrar("espera", espera, `Aguardando há ${diasEspera} dia(s)`);
+  registrar(
+    "espera",
+    espera,
+    `Aguardando há ${diasEspera} dia${diasEspera === 1 ? "" : "s"}`,
+  );
 
   const pontosReincidencia = Math.min(
     reincidencias * PESOS_PRIORIDADE.reincidenciaPorOcorrencia,

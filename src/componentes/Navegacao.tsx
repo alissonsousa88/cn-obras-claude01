@@ -125,17 +125,24 @@ export function Navegacao({
             <Link
               key={item.href}
               href={item.href}
-              className={`relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] transition ${
+              className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] transition ${
                 ativo(item.href) ? "font-semibold text-tinta-900" : "text-tinta-500"
               }`}
             >
-              <span aria-hidden className="text-base leading-none">
-                {item.icone}
+              {/* O indicador fica ancorado ao ícone, não à célula: no meio da
+                  célula ele pareceria pertencer ao item vizinho. */}
+              <span className="relative">
+                <span aria-hidden className="block text-base leading-none">
+                  {item.icone}
+                </span>
+                {item.contador ? (
+                  <span
+                    className="absolute -right-1.5 -top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-white"
+                    aria-label={`${item.contador} precisando de atenção`}
+                  />
+                ) : null}
               </span>
               {item.rotuloCurto}
-              {item.contador ? (
-                <span className="absolute right-1/4 top-1 size-2 rounded-full bg-red-500" />
-              ) : null}
             </Link>
           ))}
       </nav>

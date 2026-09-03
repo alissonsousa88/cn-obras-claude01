@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { Cartao, TituloSecao, Vazio } from "@/componentes/primitivos";
 import { REGRAS } from "@/domain/regras";
+import { plural } from "@/domain/plural";
 import { exigirUsuario } from "@/server/auth";
 import { dadosAprendizado } from "@/server/consultas";
 import { exigir } from "@/server/permissoes";
@@ -114,7 +115,8 @@ export default async function PaginaAprendizado() {
           <Cartao className="mt-2.5 border-red-200 bg-red-50/60 p-4">
             <p className="text-sm text-red-900">
               <span className="font-semibold">
-                {m.demandasSemProximoMovimento} demanda(s) sem próximo passo definido.
+                {plural(m.demandasSemProximoMovimento, "demanda")} sem próximo passo
+                definido.
               </span>{" "}
               Este é o indicador mais importante desta tela: demanda sem direção é demanda
               esquecida.

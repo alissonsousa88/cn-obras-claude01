@@ -16,6 +16,7 @@
 import { contarReincidencias, detectarReincidencias } from "./analiseHistorico";
 import { podeConcluir } from "./motorFluxo";
 import { DIA, HORA, REGRAS } from "./regras";
+import { plural } from "./plural";
 import type {
   Demanda,
   ID,
@@ -314,7 +315,7 @@ export function avaliarSinais(snap: SnapshotOperacional): SinalDesejado[] {
       nivel: horas > REGRAS.aprovacaoPendenteHoras ? "ALTO" : "MEDIO",
       mensagem:
         horas > REGRAS.aprovacaoPendenteHoras
-          ? `${ap.descricao} aguarda decisão há ${Math.floor(horas / 24)} dia(s)`
+          ? `${ap.descricao} aguarda decisão há ${plural(Math.floor(horas / 24), "dia")}`
           : `${ap.descricao} aguarda sua decisão`,
       demandaId: demanda.id,
       movimentoId: ap.movimentoId,
@@ -334,7 +335,7 @@ export function avaliarSinais(snap: SnapshotOperacional): SinalDesejado[] {
         chave: `RECORRENCIA_ATRASADA:${rec.id}`,
         tipo: "RECORRENCIA_ATRASADA",
         nivel: "ALTO",
-        mensagem: `${rec.titulo} deveria ter acontecido há ${-dias} dia(s)`,
+        mensagem: `${rec.titulo} deveria ter acontecido há ${plural(-dias, "dia")}`,
         recorrenciaId: rec.id,
         destinatarioId: rec.responsavelPadraoId,
         dados: { diasAtraso: -dias },

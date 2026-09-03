@@ -8,6 +8,7 @@
  * definido explicitamente — reiniciar apaga o histórico operacional, o que o
  * domínio proíbe em uso real.
  */
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { store } from "@/server/store/arquivoStore";
 import { construirSeed } from "@/server/store/seed";
@@ -26,6 +27,8 @@ export async function POST() {
   }
   const base = construirSeed(Date.now());
   await store.redefinir(base);
+  // Sem isto as telas continuariam servindo o estado anterior do cache.
+  revalidatePath("/", "layout");
   return NextResponse.json({
     reiniciadoEm: new Date().toISOString(),
     demandas: base.demandas.length,
