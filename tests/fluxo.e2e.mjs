@@ -129,8 +129,10 @@ try {
     const texto = await p.locator("body").innerText();
     assert.match(texto, /Precisa destravar: João Ribeiro/i);
     // O desbloqueio vira o próximo movimento, com dono e prazo: a demanda
-    // bloqueada continua tendo direção operacional.
-    assert.match(texto, /Destravar: O reparo do estoque/i);
+    // bloqueada continua tendo direção operacional. O título é curto (o tipo
+    // do impedimento); a descrição aparece no bloco vermelho acima.
+    assert.match(texto, /Destravar: aguardando material/i);
+    assert.match(texto, /O reparo do estoque não serve/i);
   });
 
   // 7 e 8 ------------------------------------------------------------------
