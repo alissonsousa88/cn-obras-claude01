@@ -587,6 +587,12 @@ function Painel({ ctx }: { ctx: Ctx }) {
         ? `Nas suas solicitações: ${partes.join(", ")}.`
         : `Na operação agora: ${partes.join(", ")}.`;
 
+  // Um movimento que já é cartão de atenção não se repete logo abaixo.
+  const jaNaAtencao = new Set(
+    atencao.precisaDeVoce.map((i) => i.sinal.movimentoId).filter(Boolean),
+  );
+  const fazerAgora = minha.fazerAgora.filter((m) => !jaNaAtencao.has(m.movimento.id));
+
   const visiveis = base.demandas.filter((d) => podeVerDemanda(usuario, d));
   const seteDias = ctx.agora - 7 * DIA;
 
@@ -625,13 +631,13 @@ function Painel({ ctx }: { ctx: Ctx }) {
         )}
       </section>
 
-      {minha.fazerAgora.length > 0 && (
+      {fazerAgora.length > 0 && (
         <section>
-          <TituloSecao contagem={minha.fazerAgora.length}>
+          <TituloSecao contagem={fazerAgora.length}>
             Seus próximos movimentos
           </TituloSecao>
           <Cartao className="divide-y divide-tinta-100">
-            {minha.fazerAgora.slice(0, 5).map(({ movimento, demanda, atrasado }) => (
+            {fazerAgora.slice(0, 5).map(({ movimento, demanda, atrasado }) => (
               <a
                 key={movimento.id}
                 href={`#/demandas/${demanda.id}`}
@@ -666,16 +672,29 @@ function Painel({ ctx }: { ctx: Ctx }) {
         </section>
       )}
 
+      {/* Preventivo não é urgente: linha compacta, não cartão. */}
       {atencao.proximas48h.length > 0 && (
         <section>
           <TituloSecao contagem={atencao.proximas48h.length}>
             Atenção nas próximas 48 horas
           </TituloSecao>
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            {atencao.proximas48h.slice(0, 4).map((item) => (
-              <CartaoAtencao key={item.sinal.id} item={item} />
+          <Cartao className="divide-y divide-tinta-100">
+            {atencao.proximas48h.slice(0, 5).map((item) => (
+              <a
+                key={item.sinal.id}
+                href={`#${item.href}`}
+                className="foco-visivel flex flex-wrap items-baseline gap-x-2 gap-y-0.5 p-3 transition hover:bg-tinta-50"
+              >
+                <span className="text-sm text-tinta-800">{item.sinal.assunto}</span>
+                <span className="text-sm text-tinta-500">{item.sinal.mensagem}</span>
+                {item.responsavel && (
+                  <span className="ml-auto text-[11px] text-tinta-400">
+                    {item.responsavel.nome}
+                  </span>
+                )}
+              </a>
             ))}
-          </div>
+          </Cartao>
         </section>
       )}
 
@@ -692,7 +711,8 @@ function Painel({ ctx }: { ctx: Ctx }) {
                 className="foco-visivel flex flex-wrap items-center gap-x-3 gap-y-1 p-3.5 transition hover:bg-tinta-50"
               >
                 <p className="min-w-0 flex-1 text-sm text-tinta-800">
-                  {item.sinal.mensagem}
+                  <span className="font-medium">{item.sinal.assunto}</span>{" "}
+                  <span className="text-tinta-500">{item.sinal.mensagem}</span>
                 </p>
                 <QuemAge
                   nome={item.responsavel?.nome}
@@ -1382,7 +1402,8 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
           <div className="flex flex-wrap gap-2">
             {sinais.map((s) => (
               <EtiquetaSinal key={s.id} nivel={s.nivel}>
-                <span className="font-semibold">{ROTULO_SINAL[s.tipo]}:</span> {s.mensagem}
+                <span className="font-semibold">{ROTULO_SINAL[s.tipo]}</span>
+                <span className="text-tinta-600">· {s.mensagem}</span>
               </EtiquetaSinal>
             ))}
           </div>

@@ -43,7 +43,7 @@ export function reconciliarSinais(
     registrarEvento(base, {
       demandaId: sinal.demandaId,
       tipo: "SINAL_RESOLVIDO",
-      descricao: `Situação normalizada: ${sinal.mensagem}`,
+      descricao: `Situação normalizada — ${sinal.assunto}: ${sinal.mensagem}`,
       dados: { tipoSinal: sinal.tipo, chave: sinal.chave },
       em: instante,
     });
@@ -59,10 +59,12 @@ export function reconciliarSinais(
       // Mantém criadoEm — a idade do sinal é informação operacional relevante.
       if (
         existente.nivel !== desejado.nivel ||
+        existente.assunto !== desejado.assunto ||
         existente.mensagem !== desejado.mensagem ||
         existente.destinatarioId !== desejado.destinatarioId
       ) {
         existente.nivel = desejado.nivel;
+        existente.assunto = desejado.assunto;
         existente.mensagem = desejado.mensagem;
         existente.destinatarioId = desejado.destinatarioId;
         existente.dados = desejado.dados;
@@ -81,7 +83,7 @@ export function reconciliarSinais(
     registrarEvento(base, {
       demandaId: sinal.demandaId,
       tipo: sinal.tipo === "REINCIDENCIA" ? "REINCIDENCIA_IDENTIFICADA" : "SINAL_ABERTO",
-      descricao: sinal.mensagem,
+      descricao: `${sinal.assunto}: ${sinal.mensagem}`,
       dados: { tipoSinal: sinal.tipo, nivel: sinal.nivel, chave: sinal.chave },
       em: instante,
     });

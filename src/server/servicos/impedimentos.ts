@@ -114,7 +114,9 @@ export function registrarImpedimento(
     demanda,
     {
       tipo: "DESBLOQUEIO",
-      acao: `Destravar: ${impedimento.descricao}`,
+      // O título é curto e estável; o detalhe fica na descrição do impedimento,
+      // que a tela mostra logo acima. Antes a frase inteira virava o título.
+      acao: `Destravar: ${ROTULO_IMPEDIMENTO[impedimento.tipo].toLowerCase()}`,
       resultadoEsperado: "Impedimento resolvido e execução retomada",
       prazo: entrada.dataRevisao,
       responsavelId: entrada.responsavelDesbloqueioId,

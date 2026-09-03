@@ -136,8 +136,8 @@ export default async function PaginaDemanda({
               )
               .map((s) => (
                 <EtiquetaSinal key={s.id} nivel={s.nivel}>
-                  <span className="font-semibold">{ROTULO_SINAL[s.tipo]}:</span>{" "}
-                  {s.mensagem}
+                  <span className="font-semibold">{ROTULO_SINAL[s.tipo]}</span>
+                  <span className="text-tinta-600">· {s.mensagem}</span>
                 </EtiquetaSinal>
               ))}
           </div>

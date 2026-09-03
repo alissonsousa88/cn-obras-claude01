@@ -312,7 +312,19 @@ export interface Sinal {
   chave: string;
   tipo: TipoSinal;
   nivel: NivelSinal;
-  /** Texto operacional, na linguagem da equipe. */
+  /**
+   * O que está em jogo, curto: a ação, a demanda ou a rotina.
+   * Ex.: "Aprovar orçamento de R$ 1.280,00".
+   */
+  assunto: string;
+  /**
+   * O que está acontecendo com o assunto, em poucas palavras.
+   * Ex.: "2 dias em atraso".
+   *
+   * A separação existe porque a interface mostra os dois em papéis visuais
+   * diferentes: o assunto é o título do cartão, a mensagem é a novidade. Uma
+   * frase única obrigaria a repetir o assunto dentro dela.
+   */
   mensagem: string;
   demandaId?: ID;
   movimentoId?: ID;

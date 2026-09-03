@@ -74,7 +74,7 @@ export async function dadosPainel(usuario: Usuario): Promise<DadosPainel> {
 
   return {
     atencao: montarAtencao(snap, usuario, { limitePorBloco: 6 }),
-    destaques: demandasEmDestaque(snap, usuario, 5),
+    destaques: demandasEmDestaque(snap, usuario, 4),
     minhaOperacao: montarMinhaOperacao(snap, usuario),
     contagens: {
       novas: visiveis.filter((d) => d.estado === "NOVA" || d.estado === "EM_TRIAGEM")

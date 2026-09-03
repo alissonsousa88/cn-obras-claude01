@@ -32,7 +32,16 @@ export default async function Painel() {
   const dados = await dadosPainel(usuario);
   const { atencao, destaques, minhaOperacao, contagens } = dados;
 
-  const fazerAgora = minhaOperacao.fazerAgora;
+  // Um movimento que já aparece como cartão de atenção não se repete em
+  // "seus próximos movimentos": era o mesmo item três vezes na mesma tela.
+  const jaNaAtencao = new Set(
+    atencao.precisaDeVoce
+      .map((i) => i.sinal.movimentoId)
+      .filter((id): id is string => !!id),
+  );
+  const fazerAgora = minhaOperacao.fazerAgora.filter(
+    (m) => !jaNaAtencao.has(m.movimento.id),
+  );
 
   return (
     <div className="space-y-8">
@@ -134,16 +143,29 @@ export default async function Painel() {
       )}
 
       {/* ------------------------------------------------------------------ */}
+      {/* Preventivo não é urgente: linha compacta, não cartão. */}
       {atencao.proximas48h.length > 0 && (
         <section>
           <TituloSecao contagem={atencao.proximas48h.length}>
             Atenção nas próximas 48 horas
           </TituloSecao>
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            {atencao.proximas48h.slice(0, 4).map((item) => (
-              <CartaoAtencao key={item.sinal.id} item={item} />
+          <Cartao className="divide-y divide-tinta-100">
+            {atencao.proximas48h.slice(0, 5).map((item) => (
+              <Link
+                key={item.sinal.id}
+                href={item.href}
+                className="foco-visivel flex flex-wrap items-baseline gap-x-2 gap-y-0.5 p-3 transition hover:bg-tinta-50"
+              >
+                <span className="text-sm text-tinta-800">{item.sinal.assunto}</span>
+                <span className="text-sm text-tinta-500">{item.sinal.mensagem}</span>
+                {item.responsavel && (
+                  <span className="ml-auto text-[11px] text-tinta-400">
+                    {item.responsavel.nome}
+                  </span>
+                )}
+              </Link>
             ))}
-          </div>
+          </Cartao>
         </section>
       )}
 
@@ -158,10 +180,11 @@ export default async function Painel() {
               <Link
                 key={item.sinal.id}
                 href={item.href}
-                className="foco-visivel flex flex-wrap items-center gap-x-3 gap-y-1 p-3.5 transition hover:bg-tinta-50"
+                className="foco-visivel flex flex-wrap items-center gap-x-3 gap-y-1 p-3 transition hover:bg-tinta-50"
               >
                 <p className="min-w-0 flex-1 text-sm text-tinta-800">
-                  {item.sinal.mensagem}
+                  <span className="font-medium">{item.sinal.assunto}</span>{" "}
+                  <span className="text-tinta-500">{item.sinal.mensagem}</span>
                 </p>
                 <QuemAge
                   nome={item.responsavel?.nome}
