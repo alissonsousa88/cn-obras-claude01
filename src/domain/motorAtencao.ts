@@ -231,10 +231,15 @@ export function montarAtencao(
   const movPorId = new Map(snap.movimentos.map((m) => [m.id, m]));
   const usuarioPorId = new Map(snap.usuarios.map((u) => [u.id, u]));
 
-  const ativos = snap.sinais.filter((s) => s.estado === "ATIVO");
+  // A visibilidade é aplicada antes de tudo: o resumo, os blocos e as
+  // contagens precisam falar da mesma operação que o usuário enxerga. Mostrar
+  // ao solicitante os números da operação inteira o obrigaria a entender um
+  // fluxo interno que não é dele.
+  const visiveis = snap.sinais.filter(
+    (s) => s.estado === "ATIVO" && visivelPara(s, demandaPorId, usuario),
+  );
 
-  const itens: ItemAtencao[] = ativos
-    .filter((sinal) => visivelPara(sinal, demandaPorId, usuario))
+  const itens: ItemAtencao[] = visiveis
     .map((sinal) => {
       const demanda = sinal.demandaId ? demandaPorId.get(sinal.demandaId) : undefined;
       const movimento = sinal.movimentoId ? movPorId.get(sinal.movimentoId) : undefined;
@@ -279,7 +284,7 @@ export function montarAtencao(
   const limitar = (lista: ItemAtencao[]) =>
     opcoes.limitePorBloco ? lista.slice(0, opcoes.limitePorBloco) : lista;
 
-  const resumo = resumirOperacao(snap, ativos);
+  const resumo = resumirOperacao(snap, visiveis, usuario);
 
   return {
     precisaDeVoce: limitar(painel.PRECISA_DE_VOCE),
@@ -332,15 +337,21 @@ function visivelPara(
 
 function resumirOperacao(
   snap: SnapshotOperacional,
-  ativos: Sinal[],
+  visiveis: Sinal[],
+  usuario: Usuario,
 ): ResumoAtencao {
   const contar = (tipo: Sinal["tipo"]) =>
-    ativos.filter((s) => s.tipo === tipo).length;
+    visiveis.filter((s) => s.tipo === tipo).length;
+  const bloqueadas = snap.demandas.filter(
+    (d) =>
+      d.estado === "BLOQUEADA" &&
+      (usuario.papel !== "SOLICITANTE" || d.solicitanteId === usuario.id),
+  );
   return {
     acoesVencidas: contar("PRAZO_VENCIDO"),
     aprovacoesAguardando: contar("APROVACAO_PENDENTE"),
     prazosProximos: contar("PRAZO_PROXIMO"),
-    demandasBloqueadas: snap.demandas.filter((d) => d.estado === "BLOQUEADA").length,
+    demandasBloqueadas: bloqueadas.length,
     semProximoMovimento: contar("SEM_PROXIMO_MOVIMENTO"),
     aguardandoTriagem: contar("TRIAGEM_PENDENTE"),
   };

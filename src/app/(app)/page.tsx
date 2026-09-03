@@ -42,7 +42,9 @@ export default async function Painel() {
           <h1 className="titulo-tela">
             {saudacao()}, {primeiroNome(usuario.nome)}
           </h1>
-          <p className="mt-1 text-sm text-tinta-500">{resumoDoDia(atencao)}</p>
+          <p className="mt-1 text-sm text-tinta-500">
+            {resumoDoDia(atencao, usuario.papel === "SOLICITANTE")}
+          </p>
         </div>
         <BotaoLink href="/demandas/nova" variante="primario">
           + Nova demanda
@@ -232,8 +234,15 @@ export default async function Painel() {
   );
 }
 
-/** Frase de abertura: o sistema diz como está a operação antes de ser perguntado. */
-function resumoDoDia(atencao: Awaited<ReturnType<typeof dadosPainel>>["atencao"]): string {
+/**
+ * Frase de abertura: o sistema diz como estão as coisas antes de ser
+ * perguntado. Os números já vêm no escopo do usuário — para o solicitante,
+ * falam das solicitações dele, não da operação inteira.
+ */
+function resumoDoDia(
+  atencao: Awaited<ReturnType<typeof dadosPainel>>["atencao"],
+  souSolicitante: boolean,
+): string {
   const r = atencao.resumo;
   const partes: string[] = [];
   if (r.acoesVencidas > 0) {
@@ -251,9 +260,13 @@ function resumoDoDia(atencao: Awaited<ReturnType<typeof dadosPainel>>["atencao"]
     partes.push(plural(r.demandasBloqueadas, "bloqueada"));
   }
   if (partes.length === 0) {
-    return "A operação está em dia: nada vencido, nada bloqueado, nada sem direção.";
+    return souSolicitante
+      ? "Suas solicitações estão avançando: nada vencido nem bloqueado."
+      : "A operação está em dia: nada vencido, nada bloqueado, nada sem direção.";
   }
-  return `Na operação agora: ${partes.join(", ")}.`;
+  return souSolicitante
+    ? `Nas suas solicitações: ${partes.join(", ")}.`
+    : `Na operação agora: ${partes.join(", ")}.`;
 }
 
 function Indicador({

@@ -408,3 +408,32 @@ test("solicitante só enxerga sinais das próprias solicitações", () => {
     assert.equal(item.demanda.solicitanteId, c.priscila.id);
   }
 });
+
+test("os números do painel respeitam o que cada papel enxerga", () => {
+  const c = cenario();
+  const snap = snapshotDe(c.base, AGORA);
+
+  const lideranca = montarAtencao(snap, c.joao).resumo;
+  const solicitante = montarAtencao(snap, c.priscila).resumo;
+
+  // A liderança vê a operação inteira.
+  assert.ok(lideranca.acoesVencidas > 0);
+
+  // O solicitante não pode receber contagens de demandas que não são dele:
+  // seria pedir que entendesse um fluxo interno que não lhe diz respeito.
+  const minhas = new Set(
+    c.base.demandas.filter((d) => d.solicitanteId === c.priscila.id).map((d) => d.id),
+  );
+  const vencidasDele = c.base.sinais.filter(
+    (s) =>
+      s.estado === "ATIVO" &&
+      s.tipo === "PRAZO_VENCIDO" &&
+      s.demandaId !== undefined &&
+      minhas.has(s.demandaId),
+  ).length;
+  assert.equal(solicitante.acoesVencidas, vencidasDele);
+  assert.ok(
+    solicitante.acoesVencidas <= lideranca.acoesVencidas,
+    "o solicitante nunca vê mais do que a liderança",
+  );
+});
