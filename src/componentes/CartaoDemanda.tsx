@@ -10,11 +10,13 @@ import {
 } from "./primitivos";
 
 /**
- * Linha/cartão de demanda.
+ * Cartão de demanda.
  *
- * O que aparece primeiro não é o título: é o que está acontecendo com ela.
- * O próximo movimento tem destaque próprio porque é a resposta à pergunta
- * "o que precisa acontecer agora".
+ * Cada informação aparece uma vez só. Em particular, o selo de estado é
+ * omitido quando há sinais ativos: "Bloqueada" ao lado de "Bloqueio prolongado"
+ * é a mesma notícia duas vezes, e o próximo passo já nomeia a fase em que a
+ * demanda está ("Triar:", "Executar:", "Aprovar", "Validar"). O estado volta a
+ * aparecer quando não há sinal nenhum — aí ele é a única pista de situação.
  */
 export function CartaoDemanda({
   demanda,
@@ -31,55 +33,65 @@ export function CartaoDemanda({
   sinais: Sinal[];
   semDirecao?: boolean;
 }) {
-  const critico = sinais.filter((s) => s.nivel === "CRITICO" || s.nivel === "ALTO");
+  const relevantes = sinais.filter(
+    (s) => s.nivel === "CRITICO" || s.nivel === "ALTO" || s.nivel === "MEDIO",
+  );
 
   return (
     <Link
       href={`/demandas/${demanda.id}`}
       className="foco-visivel block rounded-xl border border-tinta-200 bg-white p-4 transition hover:border-tinta-300 hover:shadow-sm"
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <SeloPrioridade
           nivel={demanda.prioridade.nivel}
           titulo={demanda.prioridade.justificativa}
         />
-        <SeloEstado estado={demanda.estado} />
-        <span className="ml-auto text-[11px] text-tinta-400">{demanda.codigo}</span>
+        {relevantes.length === 0 ? (
+          <SeloEstado estado={demanda.estado} />
+        ) : (
+          relevantes.slice(0, 2).map((s) => (
+            <EtiquetaSinal key={s.id} nivel={s.nivel}>
+              {ROTULO_SINAL[s.tipo]}
+            </EtiquetaSinal>
+          ))
+        )}
+        {relevantes.length > 2 && (
+          <span className="text-xs text-tinta-500">+{relevantes.length - 2}</span>
+        )}
       </div>
 
       <h3 className="mt-2 text-sm font-semibold leading-snug text-tinta-900">
         {demanda.titulo}
       </h3>
-      {local && <p className="mt-0.5 text-xs text-tinta-500">{local.nome}</p>}
+      {/* O código acompanha o local: sozinho numa linha alinhada à direita, ele
+          era empurrado para baixo pelos selos e virava uma linha órfã. */}
+      <p className="mt-0.5 text-xs text-tinta-500">
+        {local?.nome}
+        {local && <span className="text-tinta-300"> · </span>}
+        <span className="text-tinta-400">{demanda.codigo}</span>
+      </p>
 
-      {critico.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {critico.slice(0, 2).map((s) => (
-            <EtiquetaSinal key={s.id} nivel={s.nivel}>
-              {ROTULO_SINAL[s.tipo]}
-            </EtiquetaSinal>
-          ))}
-          {critico.length > 2 && (
-            <span className="self-center text-xs text-tinta-500">
-              +{critico.length - 2}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Próximo movimento: a informação mais acionável do cartão. */}
-      <div className="mt-3 rounded-lg bg-tinta-50 px-3 py-2">
-        {semDirecao || !proximoMovimento ? (
+      {/* O próximo passo é a informação mais acionável: separado por uma linha,
+          não por uma caixa preenchida, que pesava sem acrescentar nada.
+          Numa demanda encerrada não existe próximo passo — ali o que interessa
+          é o resultado. */}
+      <div className="mt-3 border-t border-tinta-100 pt-2.5">
+        {demanda.estado === "CONCLUIDA" ? (
+          <p className="text-sm leading-snug text-emerald-800">
+            <span className="text-emerald-600">✓</span>{" "}
+            {demanda.resultado?.resultadoObtido ?? "Concluída"}
+          </p>
+        ) : demanda.estado === "CANCELADA" ? (
+          <p className="text-sm text-tinta-500">Cancelada</p>
+        ) : semDirecao || !proximoMovimento ? (
           <p className="text-xs font-medium text-red-700">
             Sem próximo passo definido — alguém precisa decidir o que vem agora
           </p>
         ) : (
           <>
-            <p className="text-[11px] uppercase tracking-wide text-tinta-500">
-              Próximo passo
-            </p>
-            <p className="mt-0.5 text-sm font-medium leading-snug text-tinta-800">
-              {proximoMovimento.acao}
+            <p className="text-sm leading-snug text-tinta-800">
+              <span className="text-tinta-400">→</span> {proximoMovimento.acao}
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
               <QuemAge nome={responsavel?.nome} id={responsavel?.id} />
