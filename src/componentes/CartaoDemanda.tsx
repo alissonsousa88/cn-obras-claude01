@@ -69,7 +69,7 @@ export function CartaoDemanda({
       <p className="mt-0.5 text-xs text-tinta-500">
         {local?.nome}
         {local && <span className="text-tinta-300"> · </span>}
-        <span className="text-tinta-400">{demanda.codigo}</span>
+        <span className="numerico text-tinta-400">{demanda.codigo}</span>
       </p>
 
       {/* O próximo passo é a informação mais acionável: separado por uma linha,

@@ -26,8 +26,8 @@ const MARCOS: ReadonlySet<TipoEvento> = new Set([
 ]);
 
 const COR_EVENTO: Partial<Record<TipoEvento, string>> = {
-  DEMANDA_CRIADA: "bg-blue-500",
-  TRIAGEM_REALIZADA: "bg-blue-500",
+  DEMANDA_CRIADA: "bg-obra-500",
+  TRIAGEM_REALIZADA: "bg-obra-500",
   MOVIMENTO_CONCLUIDO: "bg-emerald-500",
   IMPEDIMENTO_REGISTRADO: "bg-red-500",
   IMPEDIMENTO_RESOLVIDO: "bg-emerald-500",
@@ -35,7 +35,7 @@ const COR_EVENTO: Partial<Record<TipoEvento, string>> = {
   SINAL_RESOLVIDO: "bg-tinta-300",
   DEMANDA_CONCLUIDA: "bg-emerald-600",
   DEMANDA_REABERTA: "bg-orange-500",
-  APROVACAO_DECIDIDA: "bg-violet-500",
+  APROVACAO_DECIDIDA: "bg-obra-600",
   REINCIDENCIA_IDENTIFICADA: "bg-amber-600",
 };
 

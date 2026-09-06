@@ -27,32 +27,32 @@ export function PainelAprovacao({
   demandaId: string;
 }) {
   return (
-    <Cartao className="border-violet-300 bg-violet-50/60 p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+    <Cartao className="border-obra-300 bg-obra-50 p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-obra-700">
         {souOAprovador ? "Aguardando sua decisão" : "Aguardando aprovação"}
       </p>
-      <p className="mt-1.5 text-base font-semibold text-violet-950">
+      <p className="mt-1.5 text-base font-semibold text-obra-900">
         {aprovacao.descricao}
       </p>
       {aprovacao.valor !== undefined && (
-        <p className="mt-1 text-sm text-violet-900">Valor: {moeda(aprovacao.valor)}</p>
+        <p className="numerico mt-1 text-sm text-obra-800">Valor: {moeda(aprovacao.valor)}</p>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
         <QuemAge nome={aprovador?.nome} id={aprovador?.id} prefixo="Decide: " />
-        <span className="text-xs text-violet-800">
+        <span className="text-xs text-obra-700">
           Solicitado {relativo(aprovacao.solicitadoEm)}
         </span>
       </div>
 
       {!souOAprovador && (
-        <p className="mt-3 text-sm text-violet-900">
+        <p className="mt-3 text-sm text-obra-800">
           {aprovador?.nome} precisa aprovar para que o serviço continue.
         </p>
       )}
 
       {podeDecidir && (
-        <Formulario acao={acaoDecidirAprovacao} className="mt-4 space-y-3 border-t border-violet-200 pt-4">
+        <Formulario acao={acaoDecidirAprovacao} className="mt-4 space-y-3 border-t border-obra-200 pt-4">
           <input type="hidden" name="demandaId" value={demandaId} />
           <input type="hidden" name="aprovacaoId" value={aprovacao.id} />
           <Campo
@@ -67,7 +67,7 @@ export function PainelAprovacao({
               type="submit"
               name="decisao"
               value="aprovar"
-              className="foco-visivel rounded-lg bg-tinta-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-tinta-800"
+              className="foco-visivel rounded-lg bg-obra-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-obra-700 active:bg-obra-800"
             >
               Aprovar
             </button>

@@ -5,6 +5,7 @@
  * permite ao usuário "perceber" antes de ler. Por isso cada um tem uma forma
  * própria (pastilha sólida, contorno, faixa lateral) além da cor.
  */
+import { CircleCheck, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type {
@@ -88,17 +89,24 @@ export function SeloPrioridade({
 // Estado — contorno discreto, é contexto e não alarme
 // ---------------------------------------------------------------------------
 
+/**
+ * Fase da demanda é contexto, não gravidade — por isso é neutra.
+ *
+ * Antes cada fase tinha sua própria matiz (azul, índigo, violeta, teal), quatro
+ * cores decorando sem significar urgência nenhuma. Só permanecem coloridos os
+ * dois estados que não são fase: bloqueada (alarme) e concluída (desfecho).
+ */
 const CORES_ESTADO: Record<EstadoDemanda, string> = {
-  NOVA: "text-blue-700 bg-blue-50 ring-blue-200",
-  EM_TRIAGEM: "text-blue-700 bg-blue-50 ring-blue-200",
-  EM_DIAGNOSTICO: "text-indigo-700 bg-indigo-50 ring-indigo-200",
-  EM_PLANEJAMENTO: "text-indigo-700 bg-indigo-50 ring-indigo-200",
-  AGUARDANDO_APROVACAO: "text-violet-700 bg-violet-50 ring-violet-200",
-  EM_EXECUCAO: "text-obra-700 bg-obra-50 ring-obra-200",
-  EM_VALIDACAO: "text-teal-700 bg-teal-50 ring-teal-200",
+  NOVA: "text-tinta-700 bg-tinta-100 ring-tinta-200",
+  EM_TRIAGEM: "text-tinta-700 bg-tinta-100 ring-tinta-200",
+  EM_DIAGNOSTICO: "text-tinta-700 bg-tinta-100 ring-tinta-200",
+  EM_PLANEJAMENTO: "text-tinta-700 bg-tinta-100 ring-tinta-200",
+  AGUARDANDO_APROVACAO: "text-tinta-700 bg-tinta-100 ring-tinta-200",
+  EM_EXECUCAO: "text-tinta-800 bg-tinta-100 ring-tinta-300",
+  EM_VALIDACAO: "text-tinta-700 bg-tinta-100 ring-tinta-200",
   BLOQUEADA: "text-red-700 bg-red-50 ring-red-200",
   CONCLUIDA: "text-emerald-700 bg-emerald-50 ring-emerald-200",
-  CANCELADA: "text-tinta-500 bg-tinta-100 ring-tinta-200",
+  CANCELADA: "text-tinta-500 bg-tinta-50 ring-tinta-200",
 };
 
 export function SeloEstado({ estado }: { estado: EstadoDemanda }) {
@@ -115,11 +123,12 @@ export function SeloEstado({ estado }: { estado: EstadoDemanda }) {
 // Sinal — ponto colorido + texto, sempre acompanhado do que fazer
 // ---------------------------------------------------------------------------
 
+/** Rampa quente única. O informativo é neutro: avisa sem cobrar. */
 const CORES_SINAL: Record<NivelSinal, string> = {
   CRITICO: "bg-red-500",
   ALTO: "bg-orange-500",
   MEDIO: "bg-amber-500",
-  INFO: "bg-blue-500",
+  INFO: "bg-tinta-300",
 };
 
 export function PontoSinal({ nivel }: { nivel: NivelSinal }) {
@@ -142,7 +151,7 @@ export function EtiquetaSinal({
     CRITICO: "bg-red-50 text-red-800 ring-red-200",
     ALTO: "bg-orange-50 text-orange-800 ring-orange-200",
     MEDIO: "bg-amber-50 text-amber-900 ring-amber-200",
-    INFO: "bg-blue-50 text-blue-800 ring-blue-200",
+    INFO: "bg-tinta-50 text-tinta-600 ring-tinta-200",
   }[nivel];
   return (
     <span
@@ -158,13 +167,15 @@ export function EtiquetaSinal({
 // Pessoa
 // ---------------------------------------------------------------------------
 
+/**
+ * Distinguir pessoas num relance é função, então a variedade fica — mas
+ * dessaturada e na faixa fria, para nunca ser confundida com gravidade.
+ */
 const CORES_AVATAR = [
   "bg-obra-100 text-obra-800",
-  "bg-blue-100 text-blue-800",
-  "bg-emerald-100 text-emerald-800",
-  "bg-violet-100 text-violet-800",
-  "bg-teal-100 text-teal-800",
-  "bg-rose-100 text-rose-800",
+  "bg-tinta-200 text-tinta-700",
+  "bg-obra-200 text-obra-900",
+  "bg-tinta-100 text-tinta-600",
 ];
 
 function corDe(id: string): string {
@@ -231,12 +242,17 @@ export function QuemAge({
 
 type Variante = "primario" | "secundario" | "fantasma" | "perigo";
 
+/**
+ * A ação principal carrega o acento, com os quatro estados. Um acento chapado
+ * e sem estados faz a interface parecer inerte ao toque — e um botão preto não
+ * dizia nada sobre a identidade do produto.
+ */
 const ESTILO_BOTAO: Record<Variante, string> = {
-  primario: "bg-tinta-900 text-white hover:bg-tinta-800",
+  primario: "bg-obra-600 text-white hover:bg-obra-700 active:bg-obra-800",
   secundario:
-    "bg-white text-tinta-700 ring-1 ring-inset ring-tinta-300 hover:bg-tinta-50",
-  fantasma: "text-tinta-600 hover:bg-tinta-100",
-  perigo: "bg-red-600 text-white hover:bg-red-700",
+    "bg-white text-tinta-700 ring-1 ring-inset ring-tinta-300 hover:bg-tinta-50 active:bg-tinta-100",
+  fantasma: "text-tinta-600 hover:bg-tinta-100 active:bg-tinta-200",
+  perigo: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800",
 };
 
 export function Botao({
@@ -309,17 +325,15 @@ export const classeInput =
 export function Vazio({
   titulo,
   descricao,
-  icone = "✓",
+  icone: Icone = CircleCheck,
 }: {
   titulo: string;
   descricao?: string;
-  icone?: string;
+  icone?: LucideIcon;
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-tinta-200 bg-white/50 px-6 py-10 text-center">
-      <span className="mb-2 text-2xl" aria-hidden>
-        {icone}
-      </span>
+      <Icone className="mb-2 size-6 text-tinta-300" strokeWidth={1.5} aria-hidden />
       <p className="text-sm font-medium text-tinta-700">{titulo}</p>
       {descricao && <p className="mt-1 text-xs text-tinta-500">{descricao}</p>}
     </div>

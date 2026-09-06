@@ -13,6 +13,17 @@
  *   - ganha um controle de tempo, que não existe no produto: permite ver o
  *     Motor de Sinais reagindo ao relógio sem esperar dias.
  */
+import {
+  BarChart3,
+  ChevronRight,
+  CircleHelp,
+  ClipboardCheck,
+  LayoutDashboard,
+  List,
+  Radar,
+  RefreshCw,
+  type LucideIcon,
+} from "lucide-react";
 import { createRoot } from "react-dom/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -335,13 +346,14 @@ function FaixaExplicativa() {
 // Navegação
 // ---------------------------------------------------------------------------
 
-const ITENS = [
-  { href: "/", rotulo: "Painel", curto: "Painel", icone: "◈" },
-  { href: "/atencao", rotulo: "Central de Atenção", curto: "Atenção", icone: "◉" },
-  { href: "/minha-operacao", rotulo: "Minha operação", curto: "Minhas", icone: "☑" },
-  { href: "/demandas", rotulo: "Demandas", curto: "Demandas", icone: "▤" },
-  { href: "/recorrencias", rotulo: "Rotinas preventivas", curto: "Rotinas", icone: "↻" },
-  { href: "/aprendizado", rotulo: "Aprendizado", curto: "Dados", icone: "◔" },
+/** Família de ícones do sistema: Lucide, a mesma da aplicação completa. */
+const ITENS: { href: string; rotulo: string; curto: string; Icone: LucideIcon }[] = [
+  { href: "/", rotulo: "Painel", curto: "Painel", Icone: LayoutDashboard },
+  { href: "/atencao", rotulo: "Central de Atenção", curto: "Atenção", Icone: Radar },
+  { href: "/minha-operacao", rotulo: "Minha operação", curto: "Minhas", Icone: ClipboardCheck },
+  { href: "/demandas", rotulo: "Demandas", curto: "Demandas", Icone: List },
+  { href: "/recorrencias", rotulo: "Rotinas preventivas", curto: "Rotinas", Icone: RefreshCw },
+  { href: "/aprendizado", rotulo: "Aprendizado", curto: "Dados", Icone: BarChart3 },
 ];
 
 function ativo(rota: string, href: string): boolean {
@@ -403,9 +415,7 @@ function BarraLateral({
                     : "text-tinta-600 hover:bg-tinta-50"
                 }`}
               >
-                <span aria-hidden className="w-4 text-center">
-                  {item.icone}
-                </span>
+                <item.Icone className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
                 <span className="flex-1">{item.rotulo}</span>
                 {contador > 0 && (
                   <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[11px] font-bold text-red-700">
@@ -513,9 +523,7 @@ function BarraInferior({
             }`}
           >
             <span className="relative">
-              <span aria-hidden className="block text-base leading-none">
-                {item.icone}
-              </span>
+              <item.Icone className="size-5" strokeWidth={1.75} aria-hidden />
               {contador > 0 && (
                 <span className="absolute -right-1.5 -top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-white" />
               )}
@@ -551,7 +559,7 @@ function renderizarRota(rota: string, ctx: Ctx) {
   if (rota === "/demandas") return <ListaDemandas ctx={ctx} />;
   if (rota === "/recorrencias") return <Recorrencias ctx={ctx} />;
   if (rota === "/aprendizado") return <Aprendizado ctx={ctx} />;
-  return <Vazio titulo="Página não encontrada" icone="?" />;
+  return <Vazio titulo="Página não encontrada" icone={CircleHelp} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -607,7 +615,7 @@ function Painel({ ctx }: { ctx: Ctx }) {
         </div>
         <a
           href="#/demandas/nova"
-          className="foco-visivel inline-flex items-center rounded-lg bg-tinta-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-tinta-800"
+          className="foco-visivel inline-flex items-center rounded-lg bg-obra-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-obra-700 active:bg-obra-800"
         >
           + Nova demanda
         </a>
@@ -800,7 +808,7 @@ function Indicador({
   return (
     <div className="rounded-xl border border-tinta-200 bg-white p-3">
       <p
-        className={`text-2xl font-semibold tabular-nums ${
+        className={`numerico text-2xl font-semibold ${
           alerta && valor > 0 ? "text-red-600" : "text-tinta-900"
         }`}
       >
@@ -891,7 +899,7 @@ function MinhaOperacao({ ctx }: { ctx: Ctx }) {
           href={`#/demandas/${demanda.id}`}
           className={`foco-visivel block rounded-xl border bg-white p-4 transition hover:shadow-sm ${
             destaque
-              ? "border-violet-200 bg-violet-50/40"
+              ? "border-obra-200 bg-obra-50/60"
               : atrasado
                 ? "border-red-200"
                 : "border-tinta-200"
@@ -902,7 +910,9 @@ function MinhaOperacao({ ctx }: { ctx: Ctx }) {
               {ROTULO_TIPO_MOVIMENTO[movimento.tipo]}
             </span>
             <SeloPrioridade nivel={demanda.prioridade.nivel} />
-            <span className="ml-auto text-[11px] text-tinta-400">{demanda.codigo}</span>
+            <span className="numerico ml-auto text-[11px] text-tinta-400">
+              {demanda.codigo}
+            </span>
           </div>
           <p className="mt-2 text-sm font-semibold leading-snug text-tinta-900">
             {movimento.acao}
@@ -1088,7 +1098,7 @@ function ListaDemandas({ ctx }: { ctx: Ctx }) {
         </div>
         <a
           href="#/demandas/nova"
-          className="foco-visivel inline-flex items-center rounded-lg bg-tinta-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-tinta-800"
+          className="foco-visivel inline-flex items-center rounded-lg bg-obra-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-obra-700 active:bg-obra-800"
         >
           + Nova demanda
         </a>
@@ -1114,7 +1124,7 @@ function ListaDemandas({ ctx }: { ctx: Ctx }) {
       </div>
 
       {linhas.length === 0 ? (
-        <Vazio titulo="Nenhuma demanda encontrada" icone="▤" />
+        <Vazio titulo="Nenhuma demanda encontrada" icone={List} />
       ) : (
         <div className="grid gap-2.5 sm:grid-cols-2">
           {linhas.map((l) => (
@@ -1311,7 +1321,7 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
   const { base, usuario, aplicar, agora, snap } = ctx;
   const demanda = base.demandas.find((d) => d.id === id);
   if (!demanda || !podeVerDemanda(usuario, demanda)) {
-    return <Vazio titulo="Demanda não encontrada" icone="?" />;
+    return <Vazio titulo="Demanda não encontrada" icone={CircleHelp} />;
   }
 
   const categoria = base.categorias.find((c) => c.id === demanda.categoriaId)!;
@@ -1356,7 +1366,7 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
             titulo={demanda.prioridade.justificativa}
           />
           <SeloEstado estado={demanda.estado} />
-          <span className="text-xs text-tinta-400">{demanda.codigo}</span>
+          <span className="numerico text-xs text-tinta-400">{demanda.codigo}</span>
         </div>
         <h1 className="titulo-tela mt-2">{demanda.titulo}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-tinta-500">
@@ -1435,13 +1445,13 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
       )}
 
       {aprovacaoPendente && (
-        <Cartao className="border-violet-300 bg-violet-50/60 p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+        <Cartao className="border-obra-300 bg-obra-50 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-obra-700">
             {aprovacaoPendente.aprovadorId === usuario.id
               ? "Aguardando sua decisão"
               : "Aguardando aprovação"}
           </p>
-          <p className="mt-1.5 text-base font-semibold text-violet-950">
+          <p className="mt-1.5 text-base font-semibold text-obra-900">
             {aprovacaoPendente.descricao}
           </p>
           <div className="mt-3">
@@ -1452,14 +1462,14 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
             />
           </div>
           {aprovacaoPendente.aprovadorId !== usuario.id && (
-            <p className="mt-3 text-sm text-violet-900">
+            <p className="mt-3 text-sm text-obra-800">
               {base.usuarios.find((u) => u.id === aprovacaoPendente.aprovadorId)?.nome}{" "}
               precisa aprovar para que o serviço continue.
             </p>
           )}
           {pode(usuario, "aprovar") && (
             <form
-              className="mt-4 space-y-3 border-t border-violet-200 pt-4"
+              className="mt-4 space-y-3 border-t border-obra-200 pt-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
@@ -1490,7 +1500,7 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
                   type="submit"
                   name="decisao"
                   value="aprovar"
-                  className="foco-visivel rounded-lg bg-tinta-900 px-3 py-2 text-sm font-medium text-white hover:bg-tinta-800"
+                  className="foco-visivel rounded-lg bg-obra-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-obra-700 active:bg-obra-800"
                 >
                   Aprovar
                 </button>
@@ -1769,7 +1779,7 @@ function BlocoProximoMovimento({
         </span>
         {movimento.origem === "AUTOMATICO" && (
           <span
-            className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700"
+            className="rounded bg-obra-50 px-1.5 py-0.5 text-[10px] font-medium text-obra-700"
             title="Este passo foi criado pelo sistema com base no passo anterior"
           >
             definido pelo sistema
@@ -1967,7 +1977,7 @@ function BlocoProximoMovimento({
           <button
             type="button"
             onClick={() => setRegistrando(true)}
-            className="foco-visivel w-full rounded-lg bg-tinta-900 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-tinta-800"
+            className="foco-visivel w-full rounded-lg bg-obra-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-obra-700 active:bg-obra-800"
           >
             Registrar o que aconteceu neste passo
           </button>
@@ -2020,7 +2030,7 @@ function Escolha({
             key={o.v}
             className={`cursor-pointer rounded-lg px-3 py-1.5 text-sm ring-1 ring-inset transition ${
               valor === o.v
-                ? "bg-tinta-900 text-white ring-tinta-900"
+                ? "bg-obra-600 text-white ring-obra-600"
                 : "bg-white text-tinta-700 ring-tinta-200 hover:bg-tinta-50"
             }`}
           >
@@ -2465,7 +2475,11 @@ function Recolhivel({
   return (
     <details className="group">
       <summary className="foco-visivel cursor-pointer list-none rounded-lg px-3 py-2 text-sm font-medium text-tinta-600 hover:bg-tinta-50">
-        <span className="mr-1.5 inline-block transition group-open:rotate-90">›</span>
+        <ChevronRight
+          className="mr-1.5 inline-block size-4 align-[-3px] transition group-open:rotate-90"
+          strokeWidth={2}
+          aria-hidden
+        />
         {rotulo}
       </summary>
       <div className="px-3 pb-3 pt-2">{children}</div>
@@ -2620,7 +2634,7 @@ function Recorrencias({ ctx }: { ctx: Ctx }) {
                   {r.ocorrenciaAberta && (
                     <a
                       href={`#/demandas/${r.ocorrenciaAberta.id}`}
-                      className="mt-2 inline-block rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 hover:bg-blue-100"
+                      className="mt-2 inline-block rounded-lg bg-obra-50 px-2.5 py-1 text-xs font-medium text-obra-800 hover:bg-obra-100"
                     >
                       Ocorrência em andamento: {r.ocorrenciaAberta.codigo} →
                     </a>
@@ -2679,7 +2693,7 @@ function Aprendizado({ ctx }: { ctx: Ctx }) {
       <section>
         <TituloSecao>Problemas que se repetem</TituloSecao>
         {m.reincidencias.length === 0 ? (
-          <Vazio titulo="Nenhuma reincidência identificada" icone="◔" />
+          <Vazio titulo="Nenhuma reincidência identificada" icone={BarChart3} />
         ) : (
           <div className="space-y-2.5">
             {m.reincidencias.map((r) => (
@@ -2796,7 +2810,7 @@ function Metrica({
   return (
     <Cartao className="p-4">
       <p
-        className={`text-2xl font-semibold tabular-nums ${
+        className={`numerico text-2xl font-semibold ${
           alerta ? "text-orange-600" : "text-tinta-900"
         }`}
       >
@@ -2810,7 +2824,7 @@ function Metrica({
 
 function Barras({ itens }: { itens: { rotulo: string; valor: number }[] }) {
   const maximo = Math.max(1, ...itens.map((i) => i.valor));
-  if (itens.length === 0) return <Vazio titulo="Sem dados no período" icone="◔" />;
+  if (itens.length === 0) return <Vazio titulo="Sem dados no período" icone={BarChart3} />;
   return (
     <Cartao className="space-y-2.5 p-4">
       {itens.map((i) => (

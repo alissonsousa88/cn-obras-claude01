@@ -53,7 +53,9 @@ export function CartaoAtencao({ item }: { item: ItemAtencao }) {
         {!acaoRedundante && (
           <span className="text-xs font-medium text-obra-700">→ {item.chamadaAcao}</span>
         )}
-        {demanda && <span className="text-[11px] text-tinta-400">{demanda.codigo}</span>}
+        {demanda && (
+          <span className="numerico text-[11px] text-tinta-400">{demanda.codigo}</span>
+        )}
       </div>
 
       {item.relacionados.length > 0 && (

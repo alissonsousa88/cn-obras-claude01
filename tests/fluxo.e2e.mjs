@@ -54,6 +54,9 @@ async function entrar(email) {
   await p.fill('input[name="senha"]', SENHA);
   await p.click('form button[type="submit"]:has-text("Entrar")');
   await p.waitForURL(`${BASE}/`);
+  // O painel passa por um esqueleto de carregamento; o título só existe quando
+  // os dados chegam. Sem esta espera, o teste lê o esqueleto.
+  await p.waitForSelector("main h1");
 }
 
 try {

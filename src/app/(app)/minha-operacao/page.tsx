@@ -161,7 +161,7 @@ function Lista({
           href={`/demandas/${demanda.id}`}
           className={`foco-visivel block rounded-xl border bg-white p-4 transition hover:shadow-sm ${
             destaque
-              ? "border-violet-200 bg-violet-50/40"
+              ? "border-obra-200 bg-obra-50/60"
               : atrasado
                 ? "border-red-200"
                 : "border-tinta-200"
@@ -172,7 +172,9 @@ function Lista({
               {ROTULO_TIPO_MOVIMENTO[movimento.tipo]}
             </span>
             <SeloPrioridade nivel={demanda.prioridade.nivel} />
-            <span className="ml-auto text-[11px] text-tinta-400">{demanda.codigo}</span>
+            <span className="numerico ml-auto text-[11px] text-tinta-400">
+              {demanda.codigo}
+            </span>
           </div>
 
           <p className="mt-2 text-sm font-semibold leading-snug text-tinta-900">

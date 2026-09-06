@@ -5,6 +5,7 @@
  * preventiva. Cada rotina mostra quando acontece de novo e o sistema abre a
  * demanda sozinho quando a data chega (ver `servicos/tick.ts`).
  */
+import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Cartao, QuemAge, TituloSecao, Vazio } from "@/componentes/primitivos";
 import { data, relativo } from "@/lib/formato";
@@ -30,7 +31,7 @@ export default async function PaginaRecorrencias() {
       </header>
 
       {recorrencias.length === 0 ? (
-        <Vazio titulo="Nenhuma rotina cadastrada" icone="↻" />
+        <Vazio titulo="Nenhuma rotina cadastrada" icone={RefreshCw} />
       ) : (
         <div className="space-y-2.5">
           {recorrencias.map((r) => {
@@ -100,7 +101,7 @@ export default async function PaginaRecorrencias() {
                     {r.ocorrenciaAberta && (
                       <Link
                         href={`/demandas/${r.ocorrenciaAberta.id}`}
-                        className="mt-2 inline-block rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 hover:bg-blue-100"
+                        className="mt-2 inline-block rounded-lg bg-obra-50 px-2.5 py-1 text-xs font-medium text-obra-800 hover:bg-obra-100"
                       >
                         Ocorrência em andamento: {r.ocorrenciaAberta.codigo} →
                       </Link>

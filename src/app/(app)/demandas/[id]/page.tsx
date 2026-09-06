@@ -69,7 +69,7 @@ export default async function PaginaDemanda({
             titulo={d.demanda.prioridade.justificativa}
           />
           <SeloEstado estado={d.demanda.estado} />
-          <span className="text-xs text-tinta-400">{d.demanda.codigo}</span>
+          <span className="numerico text-xs text-tinta-400">{d.demanda.codigo}</span>
         </div>
         <h1 className="titulo-tela mt-2">{d.demanda.titulo}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-tinta-500">

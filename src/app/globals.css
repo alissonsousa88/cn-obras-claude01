@@ -3,10 +3,19 @@
 /**
  * Design system do CN Obras.
  *
- * Paleta institucional sóbria: ardósia como base neutra, âmbar-terracota como
- * acento (remete a obra/construção sem cair em laranja de alerta). As cores de
- * estado são reservadas para significado operacional — nunca decorativas.
- * Assim, quando algo aparece vermelho na tela, é porque de fato é crítico.
+ * Derivado do produto — manutenção predial de campo —, não do ambiente (a
+ * igreja). Frio, alto contraste, denso: quem usa isto está no celular entre
+ * uma tarefa e outra, sob luz variável.
+ *
+ * A regra que governa a paleta inteira:
+ *
+ *     COR QUENTE NA TELA SIGNIFICA URGÊNCIA. NADA MAIS.
+ *
+ * Por isso o acento é azul-petróleo e não terracota: a faixa quente inteira
+ * (âmbar → laranja → vermelho) fica reservada para gravidade, e a marca não
+ * disputa com ela. Sinal informativo é neutro, porque "não precisa agir agora"
+ * não deve competir por atenção. Fase da demanda também é neutra — fase não é
+ * gravidade.
  */
 @theme {
   --color-tinta-50: #f6f7f9;
@@ -21,19 +30,25 @@
   --color-tinta-900: #1e2330;
   --color-tinta-950: #14171f;
 
-  --color-obra-50: #fdf6ef;
-  --color-obra-100: #fae9d7;
-  --color-obra-200: #f3d0ae;
-  --color-obra-300: #eab07b;
-  --color-obra-400: #e08a4a;
-  --color-obra-500: #d96f2b;
-  --color-obra-600: #c55620;
-  --color-obra-700: #a3411d;
-  --color-obra-800: #83361e;
-  --color-obra-900: #6b2e1c;
+  /* Acento: azul-petróleo. Conduíte galvanizado, água, painel de instrumento.
+     Frio e dessaturado o bastante para nunca ser lido como alerta. */
+  --color-obra-50: #eff6f8;
+  --color-obra-100: #dcebef;
+  --color-obra-200: #bcd7df;
+  --color-obra-300: #90bcc9;
+  --color-obra-400: #5e9aad;
+  --color-obra-500: #3d7d92;
+  --color-obra-600: #2f677b;
+  --color-obra-700: #2a5566;
+  --color-obra-800: #284856;
+  --color-obra-900: #253d49;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--fonte-plex-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Códigos, prazos, valores e scores: alinham em coluna e precisam de largura
+     fixa. IBM Plex Mono acompanha a Plex Sans na mesma superfamília. */
+  --font-mono: var(--fonte-plex-mono), ui-monospace, "SFMono-Regular", Menlo,
+    Consolas, monospace;
 }
 
 :root {
@@ -74,11 +89,29 @@ body {
   outline-offset: 2px;
 }
 
-/* Barra lateral de criticidade nos cartões de atenção. */
+/* Faixa de criticidade: rampa quente única. O informativo é neutro de
+   propósito — ele avisa, não cobra. */
 .faixa-critico { box-shadow: inset 4px 0 0 0 #dc2626; }
 .faixa-alto    { box-shadow: inset 4px 0 0 0 #ea580c; }
-.faixa-medio   { box-shadow: inset 4px 0 0 0 #ca8a04; }
-.faixa-info    { box-shadow: inset 4px 0 0 0 #2563eb; }
+.faixa-medio   { box-shadow: inset 4px 0 0 0 #d97706; }
+.faixa-info    { box-shadow: inset 4px 0 0 0 var(--color-tinta-300); }
+
+/* Números que alinham em coluna ou precisam ser lidos como dado, não texto. */
+.numerico {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Alvo de toque para uso em campo: 44px é o piso, mesmo em controle pequeno. */
+@media (pointer: coarse) {
+  button,
+  select,
+  [role="button"],
+  a.alvo-toque {
+    min-height: 44px;
+  }
+}
 
 @media print {
   .sem-impressao { display: none; }

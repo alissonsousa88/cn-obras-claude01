@@ -29,12 +29,18 @@ export default async function LayoutApp({
   const minha = montarMinhaOperacao(snap, usuario);
 
   const itens: ItemNav[] = [
-    { href: "/", rotulo: "Painel", rotuloCurto: "Painel", icone: "◈", mobile: true },
+    {
+      href: "/",
+      rotulo: "Painel",
+      rotuloCurto: "Painel",
+      icone: "painel",
+      mobile: true,
+    },
     {
       href: "/atencao",
       rotulo: "Central de Atenção",
       rotuloCurto: "Atenção",
-      icone: "◉",
+      icone: "atencao",
       contador: atencao.precisaDeVoce.length,
       mobile: true,
     },
@@ -42,7 +48,7 @@ export default async function LayoutApp({
       href: "/minha-operacao",
       rotulo: "Minha operação",
       rotuloCurto: "Minhas",
-      icone: "☑",
+      icone: "minhas",
       contador: minha.fazerAgora.filter((m) => m.atrasado).length,
       mobile: true,
     },
@@ -50,14 +56,14 @@ export default async function LayoutApp({
       href: "/demandas",
       rotulo: "Demandas",
       rotuloCurto: "Demandas",
-      icone: "▤",
+      icone: "demandas",
       mobile: true,
     },
     {
       href: "/recorrencias",
       rotulo: "Rotinas preventivas",
       rotuloCurto: "Rotinas",
-      icone: "↻",
+      icone: "rotinas",
       mobile: false,
     },
   ];
@@ -66,7 +72,7 @@ export default async function LayoutApp({
       href: "/aprendizado",
       rotulo: "Aprendizado",
       rotuloCurto: "Dados",
-      icone: "◔",
+      icone: "aprendizado",
       mobile: false,
     });
   }

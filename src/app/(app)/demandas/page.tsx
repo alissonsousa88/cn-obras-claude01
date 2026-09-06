@@ -5,6 +5,7 @@
  * por relevância operacional (sinais ativos e prioridade), não por data. Quem
  * chega aqui já sabe o que procura — os filtros servem a isso.
  */
+import { List } from "lucide-react";
 import { BotaoLink, Vazio } from "@/componentes/primitivos";
 import { CartaoDemanda } from "@/componentes/CartaoDemanda";
 import { exigirUsuario } from "@/server/auth";
@@ -54,7 +55,7 @@ export default async function PaginaDemandas({
         <Vazio
           titulo="Nenhuma demanda encontrada"
           descricao="Ajuste os filtros ou abra uma nova demanda."
-          icone="▤"
+          icone={List}
         />
       ) : (
         <div className="grid gap-2.5 sm:grid-cols-2">

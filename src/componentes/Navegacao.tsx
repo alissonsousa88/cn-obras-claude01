@@ -10,20 +10,49 @@
  * O contador de itens que precisam da atenção do usuário fica visível na
  * navegação: a pessoa não precisa entrar numa tela para descobrir que há algo.
  */
+import {
+  BarChart3,
+  ClipboardCheck,
+  LayoutDashboard,
+  List,
+  Radar,
+  RefreshCw,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Papel } from "@/domain/tipos";
 import { ROTULO_PAPEL } from "@/domain/rotulos";
 import { Avatar } from "./primitivos";
 
+/**
+ * Família de ícones do sistema: Lucide, uma só, em toda a interface.
+ * Antes eram glifos unicode avulsos (◈ ◉ ☑ ▤ ↻ ◔) — desenhos de origens
+ * diferentes, com pesos e alinhamentos que não conversavam entre si.
+ */
+export const ICONES: Record<string, LucideIcon> = {
+  painel: LayoutDashboard,
+  atencao: Radar,
+  minhas: ClipboardCheck,
+  demandas: List,
+  rotinas: RefreshCw,
+  aprendizado: BarChart3,
+};
+
 export interface ItemNav {
   href: string;
   rotulo: string;
   rotuloCurto: string;
-  icone: string;
+  /** Chave em ICONES. */
+  icone: keyof typeof ICONES;
   contador?: number;
   /** Mostrado na barra inferior do celular. */
   mobile: boolean;
+}
+
+function Icone({ nome, className }: { nome: string; className?: string }) {
+  const Componente = ICONES[nome] ?? LayoutDashboard;
+  return <Componente className={className} strokeWidth={1.75} aria-hidden />;
 }
 
 export function Navegacao({
@@ -64,9 +93,7 @@ export function Navegacao({
                     : "text-tinta-600 hover:bg-tinta-50"
                 }`}
               >
-                <span aria-hidden className="w-4 text-center">
-                  {item.icone}
-                </span>
+                <Icone nome={item.icone} className="size-4 shrink-0" />
                 <span className="flex-1">{item.rotulo}</span>
                 {item.contador ? (
                   <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[11px] font-bold text-red-700">
@@ -132,9 +159,7 @@ export function Navegacao({
               {/* O indicador fica ancorado ao ícone, não à célula: no meio da
                   célula ele pareceria pertencer ao item vizinho. */}
               <span className="relative">
-                <span aria-hidden className="block text-base leading-none">
-                  {item.icone}
-                </span>
+                <Icone nome={item.icone} className="size-5" />
                 {item.contador ? (
                   <span
                     className="absolute -right-1.5 -top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-white"

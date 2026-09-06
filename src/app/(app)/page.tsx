@@ -123,7 +123,7 @@ export default async function Painel() {
                     {movimento.acao}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-tinta-500">
-                    {demanda.codigo} · {demanda.titulo}
+                    <span className="numerico">{demanda.codigo}</span> · {demanda.titulo}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
@@ -309,7 +309,7 @@ function Indicador({
       className="foco-visivel rounded-xl border border-tinta-200 bg-white p-3 transition hover:border-tinta-300"
     >
       <p
-        className={`text-2xl font-semibold tabular-nums ${
+        className={`numerico text-2xl font-semibold ${
           alerta && valor > 0 ? "text-red-600" : "text-tinta-900"
         }`}
       >

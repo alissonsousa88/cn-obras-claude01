@@ -125,7 +125,7 @@ export function CaixaProximoMovimento({
         </span>
         {movimento.origem === "AUTOMATICO" && (
           <span
-            className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700"
+            className="rounded bg-obra-50 px-1.5 py-0.5 text-[10px] font-medium text-obra-700"
             title="Este passo foi criado pelo sistema com base no passo anterior"
           >
             definido pelo sistema
@@ -177,7 +177,7 @@ export function CaixaProximoMovimento({
           <button
             type="button"
             onClick={() => setRegistrando(true)}
-            className="foco-visivel w-full rounded-lg bg-tinta-900 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-tinta-800"
+            className="foco-visivel w-full rounded-lg bg-obra-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-obra-700 active:bg-obra-800"
           >
             Registrar o que aconteceu neste passo
           </button>
@@ -388,7 +388,7 @@ function Escolha({
     <fieldset>
       <legend className="mb-1.5 text-sm font-medium text-tinta-700">{rotulo}</legend>
       <div className="flex flex-wrap gap-2">
-        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm ring-1 ring-inset ring-tinta-200 has-checked:bg-tinta-900 has-checked:text-white">
+        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm ring-1 ring-inset ring-tinta-200 has-checked:bg-obra-600 has-checked:text-white">
           <input
             type="radio"
             name={nome}
@@ -398,7 +398,7 @@ function Escolha({
           />
           {simRotulo}
         </label>
-        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm ring-1 ring-inset ring-tinta-200 has-checked:bg-tinta-900 has-checked:text-white">
+        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm ring-1 ring-inset ring-tinta-200 has-checked:bg-obra-600 has-checked:text-white">
           <input
             type="radio"
             name={nome}

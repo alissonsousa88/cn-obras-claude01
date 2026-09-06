@@ -8,6 +8,7 @@
  * As métricas são calculadas sobre o histórico real (`analiseHistorico.ts`) —
  * a mesma base que alimenta o Motor de Prioridade e o sinal de reincidência.
  */
+import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { Cartao, TituloSecao, Vazio } from "@/componentes/primitivos";
 import { REGRAS } from "@/domain/regras";
@@ -171,7 +172,7 @@ function Metrica({
   return (
     <Cartao className="p-4">
       <p
-        className={`text-2xl font-semibold tabular-nums ${
+        className={`numerico text-2xl font-semibold ${
           alerta ? "text-orange-600" : "text-tinta-900"
         }`}
       >
@@ -190,7 +191,7 @@ function Metrica({
 function Barras({ itens }: { itens: { rotulo: string; valor: number }[] }) {
   const maximo = Math.max(1, ...itens.map((i) => i.valor));
   if (itens.length === 0) {
-    return <Vazio titulo="Sem dados no período" icone="◔" />;
+    return <Vazio titulo="Sem dados no período" icone={BarChart3} />;
   }
   return (
     <Cartao className="space-y-2.5 p-4">
@@ -198,7 +199,7 @@ function Barras({ itens }: { itens: { rotulo: string; valor: number }[] }) {
         <div key={i.rotulo}>
           <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
             <span className="truncate text-tinta-700">{i.rotulo}</span>
-            <span className="shrink-0 font-medium tabular-nums text-tinta-900">
+            <span className="numerico shrink-0 font-medium text-tinta-900">
               {i.valor}
             </span>
           </div>
