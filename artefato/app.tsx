@@ -35,6 +35,7 @@ import {
   Campo,
   Cartao,
   EtiquetaSinal,
+  PontoSinal,
   QuemAge,
   SeloEstado,
   SeloPrioridade,
@@ -595,11 +596,39 @@ function Painel({ ctx }: { ctx: Ctx }) {
         ? `Nas suas solicitações: ${partes.join(", ")}.`
         : `Na operação agora: ${partes.join(", ")}.`;
 
-  // Um movimento que já é cartão de atenção não se repete logo abaixo.
-  const jaNaAtencao = new Set(
-    atencao.precisaDeVoce.map((i) => i.sinal.movimentoId).filter(Boolean),
+  /**
+   * Cada bloco só mostra o que os anteriores não mostraram. A mesma regra da
+   * aplicação completa: sem ela, a mesma demanda atravessava três blocos.
+   */
+  const demandasVistas = new Set<string>();
+  const movimentosVistos = new Set<string>();
+  const registrar = (d?: string, m?: string) => {
+    if (d) demandasVistas.add(d);
+    if (m) movimentosVistos.add(m);
+  };
+  for (const i of atencao.precisaDeVoce) {
+    registrar(i.sinal.demandaId, i.sinal.movimentoId);
+  }
+  const fazerAgora = minha.fazerAgora.filter(
+    (m) => !movimentosVistos.has(m.movimento.id) && !demandasVistas.has(m.demanda.id),
   );
-  const fazerAgora = minha.fazerAgora.filter((m) => !jaNaAtencao.has(m.movimento.id));
+  for (const m of fazerAgora) registrar(m.demanda.id, m.movimento.id);
+
+  const proximas48h = atencao.proximas48h.filter(
+    (i) =>
+      (!i.sinal.demandaId || !demandasVistas.has(i.sinal.demandaId)) &&
+      (!i.sinal.movimentoId || !movimentosVistos.has(i.sinal.movimentoId)),
+  );
+  for (const i of proximas48h) registrar(i.sinal.demandaId, i.sinal.movimentoId);
+
+  const aguardandoTerceiros = atencao.aguardandoTerceiros.filter(
+    (i) => !i.sinal.demandaId || !demandasVistas.has(i.sinal.demandaId),
+  );
+  for (const i of aguardandoTerceiros) registrar(i.sinal.demandaId, i.sinal.movimentoId);
+
+  const outrasComSinal = destaques
+    .filter((d) => !demandasVistas.has(d.demanda.id))
+    .slice(0, 3);
 
   const visiveis = base.demandas.filter((d) => podeVerDemanda(usuario, d));
   const seteDias = ctx.agora - 7 * DIA;
@@ -681,13 +710,13 @@ function Painel({ ctx }: { ctx: Ctx }) {
       )}
 
       {/* Preventivo não é urgente: linha compacta, não cartão. */}
-      {atencao.proximas48h.length > 0 && (
+      {proximas48h.length > 0 && (
         <section>
-          <TituloSecao contagem={atencao.proximas48h.length}>
+          <TituloSecao contagem={proximas48h.length}>
             Atenção nas próximas 48 horas
           </TituloSecao>
           <Cartao className="divide-y divide-tinta-100">
-            {atencao.proximas48h.slice(0, 5).map((item) => (
+            {proximas48h.slice(0, 5).map((item) => (
               <a
                 key={item.sinal.id}
                 href={`#${item.href}`}
@@ -706,13 +735,13 @@ function Painel({ ctx }: { ctx: Ctx }) {
         </section>
       )}
 
-      {atencao.aguardandoTerceiros.length > 0 && (
+      {aguardandoTerceiros.length > 0 && (
         <section>
-          <TituloSecao contagem={atencao.aguardandoTerceiros.length}>
+          <TituloSecao contagem={aguardandoTerceiros.length}>
             Aguardando outras pessoas
           </TituloSecao>
           <Cartao className="divide-y divide-tinta-100">
-            {atencao.aguardandoTerceiros.slice(0, 4).map((item) => (
+            {aguardandoTerceiros.slice(0, 4).map((item) => (
               <a
                 key={item.sinal.id}
                 href={`#${item.href}`}
@@ -733,38 +762,41 @@ function Painel({ ctx }: { ctx: Ctx }) {
         </section>
       )}
 
-      <section>
-        <TituloSecao>Demandas em destaque</TituloSecao>
-        {destaques.length === 0 ? (
-          <Vazio
-            titulo="Nenhuma demanda com situação anormal"
-            descricao="As demandas em aberto estão avançando dentro do previsto."
-          />
-        ) : (
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            {destaques.map((d) => (
-              <CartaoDemanda
+      {/* Demandas com sinal que ainda não apareceram acima. Linhas, não
+          cartões: não são ações do usuário, são consciência da operação. */}
+      {outrasComSinal.length > 0 && (
+        <section>
+          <TituloSecao contagem={outrasComSinal.length}>
+            Outras demandas com sinal
+          </TituloSecao>
+          <Cartao className="divide-y divide-tinta-100">
+            {outrasComSinal.map((d) => (
+              <a
                 key={d.demanda.id}
-                demanda={d.demanda}
-                responsavel={d.responsavel}
-                proximoMovimento={d.proximoMovimento}
-                sinais={d.sinais}
-                local={base.locais.find((l) => l.id === d.demanda.localId)}
-              />
+                href={`#/demandas/${d.demanda.id}`}
+                className="foco-visivel flex flex-wrap items-baseline gap-x-2 gap-y-0.5 p-3 transition hover:bg-tinta-50"
+              >
+                <PontoSinal nivel={d.sinais[0]?.nivel ?? "INFO"} />
+                <span className="text-sm text-tinta-800">{d.demanda.titulo}</span>
+                <span className="text-sm text-tinta-500">{d.sinais[0]?.mensagem}</span>
+                {d.responsavel && (
+                  <span className="ml-auto text-[11px] text-tinta-400">
+                    {d.responsavel.nome}
+                  </span>
+                )}
+              </a>
             ))}
-          </div>
-        )}
-      </section>
+          </Cartao>
+        </section>
+      )}
 
-      <section>
-        <TituloSecao>Operação</TituloSecao>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-          <Indicador
-            rotulo="Novas"
-            valor={visiveis.filter((d) => d.estado === "NOVA" || d.estado === "EM_TRIAGEM").length}
-          />
-          <Indicador
-            rotulo="Em andamento"
+      {/* Resumo navegável em uma linha. Cinco quadros grandes repetiam, em
+          números, o que a frase de abertura já diz em prosa. */}
+      <section className="border-t border-tinta-200 pt-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-tinta-500">
+          <Contador rotulo="novas" valor={visiveis.filter((d) => d.estado === "NOVA" || d.estado === "EM_TRIAGEM").length} />
+          <Contador
+            rotulo="em andamento"
             valor={
               visiveis.filter((d) =>
                 ["EM_DIAGNOSTICO", "EM_PLANEJAMENTO", "EM_EXECUCAO", "EM_VALIDACAO"].includes(
@@ -773,17 +805,17 @@ function Painel({ ctx }: { ctx: Ctx }) {
               ).length
             }
           />
-          <Indicador
-            rotulo="Bloqueadas"
+          <Contador
+            rotulo="bloqueadas"
             valor={visiveis.filter((d) => d.estado === "BLOQUEADA").length}
             alerta
           />
-          <Indicador
-            rotulo="Aguardando aprovação"
+          <Contador
+            rotulo="aguardando aprovação"
             valor={visiveis.filter((d) => d.estado === "AGUARDANDO_APROVACAO").length}
           />
-          <Indicador
-            rotulo="Concluídas (7 dias)"
+          <Contador
+            rotulo="concluídas em 7 dias"
             valor={
               visiveis.filter(
                 (d) => d.estado === "CONCLUIDA" && (d.concluidoEm ?? 0) >= seteDias,
@@ -796,7 +828,7 @@ function Painel({ ctx }: { ctx: Ctx }) {
   );
 }
 
-function Indicador({
+function Contador({
   rotulo,
   valor,
   alerta,
@@ -806,18 +838,19 @@ function Indicador({
   alerta?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-tinta-200 bg-white p-3">
-      <p
-        className={`numerico text-2xl font-semibold ${
-          alerta && valor > 0 ? "text-red-600" : "text-tinta-900"
+    <a href="#/demandas" className="foco-visivel hover:text-tinta-700">
+      <span
+        className={`numerico font-semibold ${
+          alerta && valor > 0 ? "text-red-600" : "text-tinta-800"
         }`}
       >
         {valor}
-      </p>
-      <p className="mt-0.5 text-[11px] leading-tight text-tinta-500">{rotulo}</p>
-    </div>
+      </span>{" "}
+      {rotulo}
+    </a>
   );
 }
+
 
 // ---------------------------------------------------------------------------
 // Central de Atenção

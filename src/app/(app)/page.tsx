@@ -1,29 +1,28 @@
 /**
  * PAINEL — Central operacional.
  *
- * Não é uma coleção de gráficos. A tela responde, de cima para baixo, às
- * perguntas que o usuário faria ao abrir o sistema:
+ * Uma pergunta domina a tela: **o que precisa de você agora**. Tudo o mais é
+ * subordinado, e de propósito.
  *
- *   O que precisa de mim agora?  -> Precisa da sua atenção
- *   O que devo fazer?            -> Próximos movimentos (meus)
- *   O que está acontecendo?      -> Demandas em destaque
- *   Como está a operação?        -> Indicadores resumidos
+ * A tela já teve seis blocos no mesmo nível visual, com a mesma demanda
+ * atravessando três deles. Duas regras evitam a volta disso:
  *
- * Se nada disso existir, a tela diz explicitamente que a operação está saudável
- * — o silêncio também é informação.
+ *   1. Nada que apareceu acima reaparece abaixo.
+ *   2. Só o bloco de atenção usa cartão. O resto é linha — porque não é ação
+ *      do usuário, é consciência da operação.
  */
 import Link from "next/link";
 import { CartaoAtencao } from "@/componentes/CartaoAtencao";
-import { CartaoDemanda } from "@/componentes/CartaoDemanda";
 import {
   BotaoLink,
   Cartao,
+  PontoSinal,
   QuemAge,
   SeloPrioridade,
   TituloSecao,
   Vazio,
 } from "@/componentes/primitivos";
-import { plural, primeiroNome, prazoLegivel, saudacao } from "@/lib/formato";
+import { plural, prazoLegivel, primeiroNome, saudacao } from "@/lib/formato";
 import { exigirUsuario } from "@/server/auth";
 import { dadosPainel } from "@/server/consultas";
 
@@ -32,21 +31,47 @@ export default async function Painel() {
   const dados = await dadosPainel(usuario);
   const { atencao, destaques, minhaOperacao, contagens } = dados;
 
-  // Um movimento que já aparece como cartão de atenção não se repete em
-  // "seus próximos movimentos": era o mesmo item três vezes na mesma tela.
-  const jaNaAtencao = new Set(
-    atencao.precisaDeVoce
-      .map((i) => i.sinal.movimentoId)
-      .filter((id): id is string => !!id),
-  );
+  /**
+   * Regra 1 como cascata: cada bloco só mostra o que os anteriores não
+   * mostraram. Filtrar apenas um par de blocos não bastava — a mesma demanda
+   * reaparecia mais adiante por outro sinal.
+   */
+  const demandasVistas = new Set<string>();
+  const movimentosVistos = new Set<string>();
+  const registrar = (demandaId?: string, movimentoId?: string) => {
+    if (demandaId) demandasVistas.add(demandaId);
+    if (movimentoId) movimentosVistos.add(movimentoId);
+  };
+
+  for (const item of atencao.precisaDeVoce) {
+    registrar(item.sinal.demandaId, item.sinal.movimentoId);
+  }
+
   const fazerAgora = minhaOperacao.fazerAgora.filter(
-    (m) => !jaNaAtencao.has(m.movimento.id),
+    (m) => !movimentosVistos.has(m.movimento.id) && !demandasVistas.has(m.demanda.id),
   );
+  for (const m of fazerAgora) registrar(m.demanda.id, m.movimento.id);
+
+  // Sinais de recorrência não têm demanda: seguem sempre visíveis.
+  const proximas48h = atencao.proximas48h.filter(
+    (i) =>
+      (!i.sinal.demandaId || !demandasVistas.has(i.sinal.demandaId)) &&
+      (!i.sinal.movimentoId || !movimentosVistos.has(i.sinal.movimentoId)),
+  );
+  for (const i of proximas48h) registrar(i.sinal.demandaId, i.sinal.movimentoId);
+
+  const aguardandoTerceiros = atencao.aguardandoTerceiros.filter(
+    (i) => !i.sinal.demandaId || !demandasVistas.has(i.sinal.demandaId),
+  );
+  for (const i of aguardandoTerceiros) registrar(i.sinal.demandaId, i.sinal.movimentoId);
+
+  const outrasComSinal = destaques
+    .filter((d) => !demandasVistas.has(d.demanda.id))
+    .slice(0, 3);
 
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        {/* A frase de resumo é limitada para não empurrar a ação principal. */}
         <div className="max-w-xl">
           <h1 className="titulo-tela">
             {saudacao()}, {primeiroNome(usuario.nome)}
@@ -60,13 +85,16 @@ export default async function Painel() {
         </BotaoLink>
       </header>
 
-      {/* ------------------------------------------------------------------ */}
+      {/* O bloco que justifica a tela. Único que usa cartão. */}
       <section>
         <TituloSecao
           contagem={atencao.precisaDeVoce.length}
           acao={
             atencao.precisaDeVoce.length > 6 ? (
-              <Link href="/atencao" className="text-xs font-medium text-obra-700 hover:underline">
+              <Link
+                href="/atencao"
+                className="text-xs font-medium text-obra-700 hover:underline"
+              >
                 Ver todas
               </Link>
             ) : undefined
@@ -89,7 +117,7 @@ export default async function Painel() {
         )}
       </section>
 
-      {/* ------------------------------------------------------------------ */}
+      {/* Daqui para baixo, tudo é subordinado: linhas compactas. */}
       {fazerAgora.length > 0 && (
         <section>
           <TituloSecao
@@ -106,51 +134,40 @@ export default async function Painel() {
             Seus próximos movimentos
           </TituloSecao>
           <Cartao className="divide-y divide-tinta-100">
-            {fazerAgora.slice(0, 5).map(({ movimento, demanda, atrasado }) => (
+            {fazerAgora.slice(0, 4).map(({ movimento, demanda, atrasado }) => (
               <Link
                 key={movimento.id}
                 href={`/demandas/${demanda.id}`}
-                className="foco-visivel flex items-start gap-3 p-3.5 transition hover:bg-tinta-50 sm:items-center"
+                className="foco-visivel flex flex-wrap items-baseline gap-x-2 gap-y-0.5 p-3 transition hover:bg-tinta-50"
               >
                 <span
-                  className={`mt-1 size-2 shrink-0 rounded-full sm:mt-0 ${
+                  className={`size-2 shrink-0 self-center rounded-full ${
                     atrasado ? "bg-red-500" : "bg-amber-400"
                   }`}
                   aria-hidden
                 />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-tinta-900">
-                    {movimento.acao}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-tinta-500">
-                    <span className="numerico">{demanda.codigo}</span> · {demanda.titulo}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <SeloPrioridade nivel={demanda.prioridade.nivel} />
-                  <span
-                    className={`text-[11px] ${
-                      atrasado ? "font-medium text-red-600" : "text-tinta-500"
-                    }`}
-                  >
-                    {prazoLegivel(movimento.prazo)}
-                  </span>
-                </div>
+                <span className="text-sm text-tinta-800">{movimento.acao}</span>
+                <span
+                  className={`text-sm ${
+                    atrasado ? "font-medium text-red-600" : "text-tinta-500"
+                  }`}
+                >
+                  {prazoLegivel(movimento.prazo)}
+                </span>
+                <SeloPrioridade nivel={demanda.prioridade.nivel} />
               </Link>
             ))}
           </Cartao>
         </section>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Preventivo não é urgente: linha compacta, não cartão. */}
-      {atencao.proximas48h.length > 0 && (
+      {proximas48h.length > 0 && (
         <section>
-          <TituloSecao contagem={atencao.proximas48h.length}>
+          <TituloSecao contagem={proximas48h.length}>
             Atenção nas próximas 48 horas
           </TituloSecao>
           <Cartao className="divide-y divide-tinta-100">
-            {atencao.proximas48h.slice(0, 5).map((item) => (
+            {proximas48h.slice(0, 5).map((item) => (
               <Link
                 key={item.sinal.id}
                 href={item.href}
@@ -169,14 +186,13 @@ export default async function Painel() {
         </section>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {atencao.aguardandoTerceiros.length > 0 && (
+      {aguardandoTerceiros.length > 0 && (
         <section>
-          <TituloSecao contagem={atencao.aguardandoTerceiros.length}>
+          <TituloSecao contagem={aguardandoTerceiros.length}>
             Aguardando outras pessoas
           </TituloSecao>
           <Cartao className="divide-y divide-tinta-100">
-            {atencao.aguardandoTerceiros.slice(0, 4).map((item) => (
+            {aguardandoTerceiros.slice(0, 4).map((item) => (
               <Link
                 key={item.sinal.id}
                 href={item.href}
@@ -197,63 +213,96 @@ export default async function Painel() {
         </section>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      <section>
-        <TituloSecao
-          acao={
-            <Link href="/demandas" className="text-xs font-medium text-obra-700 hover:underline">
-              Todas as demandas
-            </Link>
-          }
-        >
-          Demandas em destaque
-        </TituloSecao>
-        {destaques.length === 0 ? (
-          <Vazio
-            titulo="Nenhuma demanda com situação anormal"
-            descricao="As demandas em aberto estão avançando dentro do previsto."
-          />
-        ) : (
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            {destaques.map((d) => (
-              <CartaoDemanda
+      {outrasComSinal.length > 0 && (
+        <section>
+          <TituloSecao
+            contagem={outrasComSinal.length}
+            acao={
+              <Link
+                href="/demandas"
+                className="text-xs font-medium text-obra-700 hover:underline"
+              >
+                Todas as demandas
+              </Link>
+            }
+          >
+            Outras demandas com sinal
+          </TituloSecao>
+          <Cartao className="divide-y divide-tinta-100">
+            {outrasComSinal.map((d) => (
+              <Link
                 key={d.demanda.id}
-                demanda={d.demanda}
-                responsavel={d.responsavel}
-                proximoMovimento={d.proximoMovimento}
-                sinais={d.sinais}
-                local={dados.locais.find((l) => l.id === d.demanda.localId)}
-              />
+                href={`/demandas/${d.demanda.id}`}
+                className="foco-visivel flex flex-wrap items-baseline gap-x-2 gap-y-0.5 p-3 transition hover:bg-tinta-50"
+              >
+                <PontoSinal nivel={d.sinais[0]?.nivel ?? "INFO"} />
+                <span className="text-sm text-tinta-800">{d.demanda.titulo}</span>
+                <span className="text-sm text-tinta-500">{d.sinais[0]?.mensagem}</span>
+                {d.responsavel && (
+                  <span className="ml-auto text-[11px] text-tinta-400">
+                    {d.responsavel.nome}
+                  </span>
+                )}
+              </Link>
             ))}
-          </div>
-        )}
-      </section>
+          </Cartao>
+        </section>
+      )}
 
-      {/* ------------------------------------------------------------------ */}
-      <section>
-        <TituloSecao>Operação</TituloSecao>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-          <Indicador rotulo="Novas" valor={contagens.novas} href="/demandas?estado=EM_TRIAGEM" />
-          <Indicador rotulo="Em andamento" valor={contagens.emAndamento} href="/demandas" />
-          <Indicador
-            rotulo="Bloqueadas"
+      {/* Resumo navegável em uma linha. Cinco quadros grandes repetiam, em
+          números, o que a frase de abertura já diz em prosa. */}
+      <section className="border-t border-tinta-200 pt-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-tinta-500">
+          <Contador
+            rotulo="novas"
+            valor={contagens.novas}
+            href="/demandas?estado=EM_TRIAGEM"
+          />
+          <Contador rotulo="em andamento" valor={contagens.emAndamento} href="/demandas" />
+          <Contador
+            rotulo="bloqueadas"
             valor={contagens.bloqueadas}
             href="/demandas?estado=BLOQUEADA"
-            alerta={contagens.bloqueadas > 0}
+            alerta
           />
-          <Indicador
-            rotulo="Aguardando aprovação"
+          <Contador
+            rotulo="aguardando aprovação"
             valor={contagens.aguardandoAprovacao}
             href="/demandas?estado=AGUARDANDO_APROVACAO"
           />
-          <Indicador
-            rotulo="Concluídas (7 dias)"
+          <Contador
+            rotulo="concluídas em 7 dias"
             valor={contagens.concluidasRecentes}
             href="/demandas?estado=CONCLUIDA&concluidas=1"
           />
         </div>
       </section>
     </div>
+  );
+}
+
+function Contador({
+  rotulo,
+  valor,
+  href,
+  alerta,
+}: {
+  rotulo: string;
+  valor: number;
+  href: string;
+  alerta?: boolean;
+}) {
+  return (
+    <Link href={href} className="foco-visivel hover:text-tinta-700">
+      <span
+        className={`numerico font-semibold ${
+          alerta && valor > 0 ? "text-red-600" : "text-tinta-800"
+        }`}
+      >
+        {valor}
+      </span>{" "}
+      {rotulo}
+    </Link>
   );
 }
 
@@ -290,32 +339,4 @@ function resumoDoDia(
   return souSolicitante
     ? `Nas suas solicitações: ${partes.join(", ")}.`
     : `Na operação agora: ${partes.join(", ")}.`;
-}
-
-function Indicador({
-  rotulo,
-  valor,
-  href,
-  alerta,
-}: {
-  rotulo: string;
-  valor: number;
-  href: string;
-  alerta?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className="foco-visivel rounded-xl border border-tinta-200 bg-white p-3 transition hover:border-tinta-300"
-    >
-      <p
-        className={`numerico text-2xl font-semibold ${
-          alerta && valor > 0 ? "text-red-600" : "text-tinta-900"
-        }`}
-      >
-        {valor}
-      </p>
-      <p className="mt-0.5 text-[11px] leading-tight text-tinta-500">{rotulo}</p>
-    </Link>
-  );
 }

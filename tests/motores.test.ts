@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DIA, HORA } from "../src/domain/regras";
 import { podeConcluir, semDirecao } from "../src/domain/motorFluxo";
-import { montarAtencao } from "../src/domain/motorAtencao";
+import { demandasEmDestaque, montarAtencao } from "../src/domain/motorAtencao";
 import { avaliarSinais } from "../src/domain/motorSinais";
 import { calcularPrioridade } from "../src/domain/motorPrioridade";
 import type { Usuario } from "../src/domain/tipos";
@@ -436,4 +436,46 @@ test("os números do painel respeitam o que cada papel enxerga", () => {
     solicitante.acoesVencidas <= lideranca.acoesVencidas,
     "o solicitante nunca vê mais do que a liderança",
   );
+});
+
+test("o painel não mostra a mesma demanda em dois blocos", () => {
+  const c = cenario();
+  const snap = snapshotDe(c.base, AGORA);
+
+  // Reproduz a cascata do painel: cada bloco só mostra o que os anteriores
+  // não mostraram. Sem ela, a mesma demanda aparecia em três blocos.
+  for (const usuario of [c.joao, c.carlos, c.priscila]) {
+    const painel = montarAtencao(snap, usuario);
+    const vistas = new Set<string>();
+    const registrar = (id?: string) => id && vistas.add(id);
+
+    for (const i of painel.precisaDeVoce) registrar(i.sinal.demandaId);
+
+    const proximas = painel.proximas48h.filter(
+      (i) => !i.sinal.demandaId || !vistas.has(i.sinal.demandaId),
+    );
+    for (const i of proximas) registrar(i.sinal.demandaId);
+
+    const terceiros = painel.aguardandoTerceiros.filter(
+      (i) => !i.sinal.demandaId || !vistas.has(i.sinal.demandaId),
+    );
+    for (const i of terceiros) registrar(i.sinal.demandaId);
+
+    const outras = demandasEmDestaque(snap, usuario, 4).filter(
+      (d) => !vistas.has(d.demanda.id),
+    );
+
+    const todas = [
+      ...painel.precisaDeVoce.map((i) => i.sinal.demandaId),
+      ...proximas.map((i) => i.sinal.demandaId),
+      ...terceiros.map((i) => i.sinal.demandaId),
+      ...outras.map((d) => d.demanda.id),
+    ].filter((id): id is string => !!id);
+
+    assert.equal(
+      todas.length,
+      new Set(todas).size,
+      `${usuario.nome} veria a mesma demanda em mais de um bloco do painel`,
+    );
+  }
 });
