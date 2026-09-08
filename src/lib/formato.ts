@@ -86,3 +86,17 @@ export function paraInputDateTime(ms: number): string {
 // Pluralização vive no domínio (os motores também escrevem texto para a tela).
 export { plural } from "@/domain/plural";
 
+/**
+ * Monta o link de clique-para-conversar do WhatsApp (`wa.me`).
+ *
+ * Assume números brasileiros: se sobrarem 10 ou 11 dígitos (DDD + número, com
+ * ou sem o 9), prefixa o código do país (55). Números já digitados com código
+ * do país (13 dígitos começando em 55) passam direto.
+ */
+export function paraLinkWhatsApp(telefone: string, mensagem: string): string {
+  const digitos = telefone.replace(/\D/g, "");
+  const comCodigoPais =
+    digitos.length <= 11 && !digitos.startsWith("55") ? `55${digitos}` : digitos;
+  return `https://wa.me/${comCodigoPais}?text=${encodeURIComponent(mensagem)}`;
+}
+

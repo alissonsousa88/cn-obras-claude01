@@ -11,7 +11,7 @@ import { DIA, HORA } from "@/domain/regras";
 import type { Categoria, Local, Usuario } from "@/domain/tipos";
 import { gerarHashSenha } from "../senhas";
 import { novoId } from "../servicos/comum";
-import { abrirDemanda } from "../servicos/demandas";
+import { abrirDemanda, registrarNotificacaoSolicitante } from "../servicos/demandas";
 import { registrarImpedimento } from "../servicos/impedimentos";
 import { concluirMovimento } from "../servicos/movimentos";
 import { criarRecorrencia } from "../servicos/recorrencias";
@@ -40,15 +40,21 @@ function criarUsuarios(agora: number): Usuario[] {
     criadoEm: agora - 200 * DIA,
   });
 
+  // Só equipe e liderança têm conta — quem solicita um reparo não precisa de
+  // login, é só um nome e um telefone na demanda (ver `demandasExemplo`).
   return [
     base("João Ribeiro", "joao@cnobras.app", "LIDERANCA", []),
     base("Carlos Menezes", "carlos@cnobras.app", "OPERACAO", ["hidraulica", "eletrica"]),
     base("Marina Alves", "marina@cnobras.app", "OPERACAO", ["climatizacao", "equipamentos"]),
     base("Tiago Nunes", "tiago@cnobras.app", "OPERACAO", ["pintura", "mobiliario", "estrutural"]),
-    base("Priscila Duarte", "priscila@cnobras.app", "SOLICITANTE", []),
-    base("Rafael Lima", "rafael@cnobras.app", "SOLICITANTE", []),
   ];
 }
+
+/** Contatos de exemplo — pessoas da igreja que pedem reparos, sem login. */
+const SOLICITANTES = {
+  priscila: { nome: "Priscila Duarte", telefone: "(11) 91234-5678" },
+  rafael: { nome: "Rafael Lima", telefone: "(11) 99876-5432" },
+} as const;
 
 function criarCategorias(): Categoria[] {
   const c = (
@@ -120,8 +126,6 @@ export function construirSeed(agora: number): BaseDados {
   const carlos = u("carlos");
   const marina = u("marina");
   const tiago = u("tiago");
-  const priscila = u("priscila");
-  const rafael = u("rafael");
 
   // -------------------------------------------------------------------------
   // 1. Vazamento no banheiro masculino — em execução, prazo apertado
@@ -129,7 +133,7 @@ export function construirSeed(agora: number): BaseDados {
   const t1 = agora - 2 * DIA - 3 * HORA;
   const vazamento = abrirDemanda(
     base,
-    priscila,
+    carlos,
     {
       titulo: "Vazamento no banheiro masculino",
       descricao:
@@ -137,6 +141,8 @@ export function construirSeed(agora: number): BaseDados {
       localId: loc("Banheiro masculino"),
       categoriaId: cat("hidraulica"),
       fatores: { risco: true, operacaoComprometida: true, pessoasAfetadas: 120 },
+      solicitanteNome: SOLICITANTES.priscila.nome,
+      solicitanteTelefone: SOLICITANTES.priscila.telefone,
     },
     t1,
   );
@@ -157,6 +163,9 @@ export function construirSeed(agora: number): BaseDados {
     { responsavelId: carlos.id, prazoDemanda: t1 + 3 * DIA, custoEstimado: 90 },
     t1 + 5 * HORA,
   );
+  // Demonstra o botão de WhatsApp: o responsável já mantém a solicitante
+  // informada, por fora do sistema.
+  registrarNotificacaoSolicitante(base, carlos, vazamento.id, t1 + 5 * HORA + 10 * 60_000);
 
   // -------------------------------------------------------------------------
   // 2. Ar-condicionado do auditório — bloqueado aguardando fornecedor
@@ -164,7 +173,7 @@ export function construirSeed(agora: number): BaseDados {
   const t2 = agora - 11 * DIA;
   const arCondicionado = abrirDemanda(
     base,
-    rafael,
+    marina,
     {
       titulo: "Ar-condicionado do auditório não gela",
       descricao:
@@ -172,6 +181,8 @@ export function construirSeed(agora: number): BaseDados {
       localId: loc("Auditório"),
       categoriaId: cat("climatizacao"),
       fatores: { operacaoComprometida: true, pessoasAfetadas: 250 },
+      solicitanteNome: SOLICITANTES.rafael.nome,
+      solicitanteTelefone: SOLICITANTES.rafael.telefone,
     },
     t2,
   );
@@ -210,7 +221,7 @@ export function construirSeed(agora: number): BaseDados {
   const t3 = agora - 6 * DIA;
   const iluminacao = abrirDemanda(
     base,
-    priscila,
+    carlos,
     {
       titulo: "Iluminação da sala infantil está fraca e piscando",
       descricao:
@@ -218,6 +229,8 @@ export function construirSeed(agora: number): BaseDados {
       localId: loc("Sala infantil"),
       categoriaId: cat("eletrica"),
       fatores: { seguranca: true, pessoasAfetadas: 60 },
+      solicitanteNome: SOLICITANTES.priscila.nome,
+      solicitanteTelefone: SOLICITANTES.priscila.telefone,
     },
     t3,
   );
@@ -261,13 +274,15 @@ export function construirSeed(agora: number): BaseDados {
   const t4 = agora - 9 * DIA;
   const pintura = abrirDemanda(
     base,
-    rafael,
+    tiago,
     {
       titulo: "Repintar a parede da recepção",
       descricao: "Parede está manchada e descascando atrás do balcão de acolhimento.",
       localId: loc("Recepção"),
       categoriaId: cat("pintura"),
       fatores: { pessoasAfetadas: 200 },
+      solicitanteNome: SOLICITANTES.rafael.nome,
+      solicitanteTelefone: SOLICITANTES.rafael.telefone,
     },
     t4,
   );
@@ -294,13 +309,15 @@ export function construirSeed(agora: number): BaseDados {
   const t5 = agora - 5 * DIA;
   const tomada = abrirDemanda(
     base,
-    rafael,
+    carlos,
     {
       titulo: "Tomada da mesa de som soltando faísca",
       descricao: "Ao conectar a mesa, a tomada solta faísca e cheira a queimado.",
       localId: loc("Sala de som"),
       categoriaId: cat("eletrica"),
       fatores: { seguranca: true, risco: true, operacaoComprometida: true, pessoasAfetadas: 15 },
+      solicitanteNome: SOLICITANTES.rafael.nome,
+      solicitanteTelefone: SOLICITANTES.rafael.telefone,
     },
     t5,
   );
@@ -347,7 +364,7 @@ export function construirSeed(agora: number): BaseDados {
     const t = agora - item.dias * DIA;
     const d = abrirDemanda(
       base,
-      priscila,
+      carlos,
       {
         titulo: item.titulo,
         descricao:
@@ -355,6 +372,8 @@ export function construirSeed(agora: number): BaseDados {
         localId: loc("Salas de apoio"),
         categoriaId: cat("hidraulica"),
         fatores: { pessoasAfetadas: 80 },
+        solicitanteNome: SOLICITANTES.priscila.nome,
+        solicitanteTelefone: SOLICITANTES.priscila.telefone,
       },
       t,
     );
@@ -392,9 +411,12 @@ export function construirSeed(agora: number): BaseDados {
       )!;
       concluirMovimento(
         base,
-        priscila,
+        carlos,
         val.id,
-        { relato: "Teto seco, mancha não voltou até agora.", problemaResolvido: true },
+        {
+          relato: "Liguei para a Priscila: confirma que o teto está seco, mancha não voltou.",
+          problemaResolvido: true,
+        },
         undefined,
         t + 4 * DIA,
       );
@@ -420,13 +442,15 @@ export function construirSeed(agora: number): BaseDados {
   const t7 = agora - 30 * HORA;
   const porta = abrirDemanda(
     base,
-    rafael,
+    tiago,
     {
       titulo: "Porta do estacionamento não trava",
       descricao: "O portão social fecha mas a lingueta não prende. Fica encostado.",
       localId: loc("Estacionamento"),
       categoriaId: cat("manutencao"),
       fatores: { risco: true, pessoasAfetadas: 300 },
+      solicitanteNome: SOLICITANTES.rafael.nome,
+      solicitanteTelefone: SOLICITANTES.rafael.telefone,
     },
     t7,
   );
@@ -434,8 +458,7 @@ export function construirSeed(agora: number): BaseDados {
     base,
     tiago,
     porta.id,
-    "O portão é o social ou o de veículos? Precisamos saber para levar a fechadura certa.",
-    { perguntaPara: rafael.id },
+    "Preciso confirmar com o Rafael pelo WhatsApp se é o portão social ou o de veículos, antes de comprar a fechadura.",
     t7 + 3 * HORA,
   );
 
@@ -445,13 +468,15 @@ export function construirSeed(agora: number): BaseDados {
   const t8 = agora - 8 * DIA;
   const cadeiras = abrirDemanda(
     base,
-    priscila,
+    tiago,
     {
       titulo: "Cadeiras quebradas nas salas de apoio",
       descricao: "Cerca de 12 cadeiras com o encosto solto ou a base torta.",
       localId: loc("Salas de apoio"),
       categoriaId: cat("mobiliario"),
       fatores: { pessoasAfetadas: 80 },
+      solicitanteNome: SOLICITANTES.priscila.nome,
+      solicitanteTelefone: SOLICITANTES.priscila.telefone,
     },
     t8,
   );
@@ -487,13 +512,15 @@ export function construirSeed(agora: number): BaseDados {
   const t9 = agora - 4 * DIA;
   const cafeteira = abrirDemanda(
     base,
-    priscila,
+    marina,
     {
       titulo: "Cafeteira industrial parou de aquecer",
       descricao: "A resistência não liga. A equipe da cafeteria está sem servir café.",
       localId: loc("Cozinha"),
       categoriaId: cat("equipamentos"),
       fatores: { pessoasAfetadas: 40 },
+      solicitanteNome: SOLICITANTES.priscila.nome,
+      solicitanteTelefone: SOLICITANTES.priscila.telefone,
     },
     t9,
   );
@@ -529,9 +556,12 @@ export function construirSeed(agora: number): BaseDados {
   )!;
   concluirMovimento(
     base,
-    priscila,
+    marina,
     valCafe.id,
-    { relato: "Café saindo normalmente desde ontem.", problemaResolvido: true },
+    {
+      relato: "Passei na cozinha: confirmam que o café está saindo normalmente desde ontem.",
+      problemaResolvido: true,
+    },
     undefined,
     t9 + 2 * DIA,
   );

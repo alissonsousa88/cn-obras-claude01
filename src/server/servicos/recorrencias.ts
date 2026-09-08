@@ -82,7 +82,8 @@ export function gerarOcorrencia(
       categoriaId: rec.categoriaId,
       recorrenciaId: rec.id,
       responsavelId: rec.responsavelPadraoId,
-      solicitanteId: rec.responsavelPadraoId ?? autor.id,
+      // Rotina preventiva não tem um solicitante humano por trás.
+      solicitanteNome: "Rotina preventiva",
     },
     instante,
   );

@@ -42,7 +42,6 @@ export function GestaoDemanda({
   podeRegistrarImpedimento: boolean;
 }) {
   if (!podeAtribuir && !podeAjustarPrioridade && !podeRegistrarImpedimento) return null;
-  const operacao = usuarios.filter((u) => u.papel !== "SOLICITANTE");
   const tresDias = paraInputDateTime(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
   return (
@@ -125,7 +124,7 @@ export function GestaoDemanda({
                 className={classeInput}
               >
                 <option value="">Sem responsável</option>
-                {operacao.map((u) => (
+                {usuarios.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.nome}
                   </option>

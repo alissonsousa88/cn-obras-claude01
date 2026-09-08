@@ -327,14 +327,16 @@ export function sugerirProximoMovimento(
         };
       }
       // Invariante do domínio: atividade executada ≠ resultado alcançado.
+      // O solicitante não usa o sistema, então quem valida é a própria equipe
+      // — depois de confirmar com ele por fora (telefone, WhatsApp).
       return {
         sugestao: {
           tipo: "VALIDACAO",
-          acao: "Validar se o problema foi realmente resolvido",
+          acao: "Confirmar com o solicitante se o problema foi realmente resolvido",
           resultadoEsperado:
             "Confirmação de que o problema original deixou de existir",
           prazoHoras: REGRAS.prazoPadraoHoras.VALIDACAO,
-          responsavelId: demanda.solicitanteId,
+          responsavelId: resp,
           motivo:
             "A execução foi concluída, mas ainda falta validar se o problema foi resolvido",
         },

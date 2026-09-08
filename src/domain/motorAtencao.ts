@@ -118,7 +118,6 @@ function calcularPeso(
   // Itens endereçados ao usuário sobem: é ele quem pode agir.
   if (sinal.destinatarioId === usuario.id) peso += 250;
   else if (demanda?.responsavelId === usuario.id) peso += 120;
-  else if (demanda?.solicitanteId === usuario.id) peso += 40;
 
   // Sinais mais antigos sobem levemente, para não ficarem no fim para sempre.
   peso += Math.min((agora - sinal.criadoEm) / DIA, 5) * 8;
@@ -231,13 +230,11 @@ export function montarAtencao(
   const movPorId = new Map(snap.movimentos.map((m) => [m.id, m]));
   const usuarioPorId = new Map(snap.usuarios.map((u) => [u.id, u]));
 
-  // A visibilidade é aplicada antes de tudo: o resumo, os blocos e as
-  // contagens precisam falar da mesma operação que o usuário enxerga. Mostrar
-  // ao solicitante os números da operação inteira o obrigaria a entender um
-  // fluxo interno que não é dele.
-  const visiveis = snap.sinais.filter(
-    (s) => s.estado === "ATIVO" && visivelPara(s, demandaPorId, usuario),
-  );
+  // Todo usuário do sistema é equipe ou liderança — o solicitante não tem
+  // conta — então todos enxergam a operação inteira aqui. A separação por
+  // pessoa acontece na ponderação (`calcularPeso`) e nos blocos, não na
+  // visibilidade.
+  const visiveis = snap.sinais.filter((s) => s.estado === "ATIVO");
 
   const itens: ItemAtencao[] = visiveis
     .map((sinal) => {
@@ -284,7 +281,7 @@ export function montarAtencao(
   const limitar = (lista: ItemAtencao[]) =>
     opcoes.limitePorBloco ? lista.slice(0, opcoes.limitePorBloco) : lista;
 
-  const resumo = resumirOperacao(snap, visiveis, usuario);
+  const resumo = resumirOperacao(snap, visiveis);
 
   return {
     precisaDeVoce: limitar(painel.PRECISA_DE_VOCE),
@@ -320,33 +317,10 @@ function consolidarPorDemanda(itens: ItemAtencao[]): ItemAtencao[] {
   return resultado;
 }
 
-/**
- * Solicitantes veem apenas o que se refere às próprias solicitações. Equipe e
- * liderança veem a operação.
- */
-function visivelPara(
-  sinal: Sinal,
-  demandas: Map<ID, Demanda>,
-  usuario: Usuario,
-): boolean {
-  if (usuario.papel !== "SOLICITANTE") return true;
-  if (sinal.destinatarioId === usuario.id) return true;
-  if (!sinal.demandaId) return false;
-  return demandas.get(sinal.demandaId)?.solicitanteId === usuario.id;
-}
-
-function resumirOperacao(
-  snap: SnapshotOperacional,
-  visiveis: Sinal[],
-  usuario: Usuario,
-): ResumoAtencao {
+function resumirOperacao(snap: SnapshotOperacional, visiveis: Sinal[]): ResumoAtencao {
   const contar = (tipo: Sinal["tipo"]) =>
     visiveis.filter((s) => s.tipo === tipo).length;
-  const bloqueadas = snap.demandas.filter(
-    (d) =>
-      d.estado === "BLOQUEADA" &&
-      (usuario.papel !== "SOLICITANTE" || d.solicitanteId === usuario.id),
-  );
+  const bloqueadas = snap.demandas.filter((d) => d.estado === "BLOQUEADA");
   return {
     acoesVencidas: contar("PRAZO_VENCIDO"),
     aprovacoesAguardando: contar("APROVACAO_PENDENTE"),
@@ -432,9 +406,7 @@ export function montarMinhaOperacao(
     .filter((i) => {
       const d = demandaPorId.get(i.demandaId);
       if (!d) return false;
-      const meuInteresse =
-        d.responsavelId === usuario.id || d.solicitanteId === usuario.id;
-      return meuInteresse && i.responsavelDesbloqueioId !== usuario.id;
+      return d.responsavelId === usuario.id && i.responsavelDesbloqueioId !== usuario.id;
     })
     .map((i) => ({
       demanda: demandaPorId.get(i.demandaId)!,
@@ -475,7 +447,6 @@ export interface DemandaDestaque {
  */
 export function demandasEmDestaque(
   snap: SnapshotOperacional,
-  usuario: Usuario,
   limite = 6,
 ): DemandaDestaque[] {
   const usuarioPorId = new Map(snap.usuarios.map((u) => [u.id, u]));
@@ -497,10 +468,6 @@ export function demandasEmDestaque(
 
   return snap.demandas
     .filter((d) => d.estado !== "CONCLUIDA" && d.estado !== "CANCELADA")
-    .filter(
-      (d) =>
-        usuario.papel !== "SOLICITANTE" || d.solicitanteId === usuario.id,
-    )
     .map((demanda) => {
       const sinais = (sinaisPorDemanda.get(demanda.id) ?? []).sort(
         (a, b) => NIVEL_SINAL_ORDEM[a.nivel] - NIVEL_SINAL_ORDEM[b.nivel],

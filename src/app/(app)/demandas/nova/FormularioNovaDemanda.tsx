@@ -52,6 +52,30 @@ export function FormularioNovaDemanda({
           </Campo>
         </div>
 
+        {/* O solicitante não usa o sistema — só o contato dele fica registrado
+            aqui, para o botão de aviso pelo WhatsApp. */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo rotulo="Quem está pedindo?" obrigatorio>
+            <input
+              name="solicitanteNome"
+              required
+              placeholder="Nome de quem relatou o problema"
+              className={classeInput}
+            />
+          </Campo>
+          <Campo
+            rotulo="WhatsApp para retorno"
+            dica="Assim dá para avisar quando resolver"
+          >
+            <input
+              name="solicitanteTelefone"
+              type="tel"
+              placeholder="(11) 91234-5678"
+              className={classeInput}
+            />
+          </Campo>
+        </div>
+
         <Campo
           rotulo="Conte um pouco mais"
           dica="Detalhes ajudam quem vai atender a chegar preparado."
