@@ -20,6 +20,7 @@ import {
   ClipboardCheck,
   LayoutDashboard,
   List,
+  MessageCircle,
   Radar,
   RefreshCw,
   type LucideIcon,
@@ -51,6 +52,7 @@ import {
 } from "@/domain/motorAtencao";
 import { movimentoAtual, podeConcluir, semDirecao } from "@/domain/motorFluxo";
 import { plural } from "@/domain/plural";
+import { gerarResumoWhatsApp } from "@/domain/resumo";
 import { DIA, REGRAS } from "@/domain/regras";
 import {
   ROTULO_ESTADO,
@@ -74,6 +76,7 @@ import {
   data,
   dataHora,
   paraInputDateTime,
+  paraLinkWhatsApp,
   prazoLegivel,
   primeiroNome,
   relativo,
@@ -81,13 +84,14 @@ import {
 } from "@/lib/formato";
 import { pode, podeVerDemanda } from "@/server/permissoes";
 import { decidirAprovacao } from "@/server/servicos/aprovacoes";
-import { snapshotDe } from "@/server/servicos/comum";
+import { contextoDemanda, snapshotDe } from "@/server/servicos/comum";
 import { comentar } from "@/server/servicos/conversa";
 import {
   abrirDemanda,
   ajustarPrioridade,
   atribuirResponsavel,
   concluirDemanda,
+  registrarNotificacaoSolicitante,
 } from "@/server/servicos/demandas";
 import {
   registrarImpedimento,
@@ -571,8 +575,7 @@ function Painel({ ctx }: { ctx: Ctx }) {
   const { snap, usuario, base } = ctx;
   const atencao = montarAtencao(snap, usuario, { limitePorBloco: 6 });
   const minha = montarMinhaOperacao(snap, usuario);
-  const destaques = demandasEmDestaque(snap, usuario, 4);
-  const souSolicitante = usuario.papel === "SOLICITANTE";
+  const destaques = demandasEmDestaque(snap, 4);
   const r = atencao.resumo;
 
   const partes: string[] = [];
@@ -589,12 +592,8 @@ function Painel({ ctx }: { ctx: Ctx }) {
 
   const resumo =
     partes.length === 0
-      ? souSolicitante
-        ? "Suas solicitações estão avançando: nada vencido nem bloqueado."
-        : "A operação está em dia: nada vencido, nada bloqueado, nada sem direção."
-      : souSolicitante
-        ? `Nas suas solicitações: ${partes.join(", ")}.`
-        : `Na operação agora: ${partes.join(", ")}.`;
+      ? "A operação está em dia: nada vencido, nada bloqueado, nada sem direção."
+      : `Na operação agora: ${partes.join(", ")}.`;
 
   /**
    * Cada bloco só mostra o que os anteriores não mostraram. A mesma regra da
@@ -1209,6 +1208,8 @@ function NovaDemanda({ ctx }: { ctx: Ctx }) {
                 descricao: String(fd.get("descricao") ?? ""),
                 localId: String(fd.get("localId") ?? ""),
                 categoriaId: String(fd.get("categoriaId") ?? ""),
+                solicitanteNome: String(fd.get("solicitanteNome") ?? ""),
+                solicitanteTelefone: String(fd.get("solicitanteTelefone") ?? ""),
                 fatores: {
                   seguranca: fd.get("seguranca") === "on",
                   risco: fd.get("risco") === "on",
@@ -1261,6 +1262,28 @@ function NovaDemanda({ ctx }: { ctx: Ctx }) {
               </select>
             </Campo>
           </div>
+
+          {/* O solicitante não usa o sistema — é só um contato. O telefone é
+              o que liga o botão de WhatsApp na tela da demanda. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo rotulo="Quem está pedindo?" obrigatorio>
+              <input
+                name="solicitanteNome"
+                required
+                minLength={2}
+                placeholder="Ex.: Priscila Duarte"
+                className={classeInput}
+              />
+            </Campo>
+            <Campo rotulo="WhatsApp para retorno" dica="Ativa o botão de aviso na tela da demanda">
+              <input
+                name="solicitanteTelefone"
+                placeholder="Ex.: (11) 91234-5678"
+                className={classeInput}
+              />
+            </Campo>
+          </div>
+
           <Campo
             rotulo="Conte um pouco mais"
             dica="Detalhes ajudam quem vai atender a chegar preparado."
@@ -1366,9 +1389,7 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
   const eventos = base.eventos
     .filter((e) => e.demandaId === id)
     .sort((a, b) => b.criadoEm - a.criadoEm);
-  const comentarios = base.comentarios
-    .filter((c) => c.demandaId === id)
-    .filter((c) => usuario.papel !== "SOLICITANTE" || c.visivelSolicitante);
+  const comentarios = base.comentarios.filter((c) => c.demandaId === id);
   const sinais = snap.sinais.filter((s) => s.estado === "ATIVO" && s.demandaId === id);
 
   const ctxFluxo = { demanda, movimentos, impedimentos, aprovacoes, categoria };
@@ -1597,11 +1618,22 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
           <p className="whitespace-pre-line text-sm text-tinta-700">
             {demanda.descricao || "Sem descrição adicional."}
           </p>
-          <p className="mt-3 border-t border-tinta-100 pt-3 text-xs text-tinta-500">
-            Solicitado por{" "}
-            {base.usuarios.find((u) => u.id === demanda.solicitanteId)?.nome} em{" "}
-            {dataHora(demanda.criadoEm)}
-          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-tinta-100 pt-3">
+            <p className="text-xs text-tinta-500">
+              Solicitado por {demanda.solicitanteNome} em {dataHora(demanda.criadoEm)}
+              {demanda.solicitanteTelefone && (
+                <span className="numerico"> · {demanda.solicitanteTelefone}</span>
+              )}
+            </p>
+            {demanda.solicitanteTelefone && (
+              <BotaoAvisarWhatsAppLocal
+                ctx={ctx}
+                demandaId={demanda.id}
+                telefone={demanda.solicitanteTelefone}
+                solicitanteNome={demanda.solicitanteNome}
+              />
+            )}
+          </div>
         </Cartao>
       </section>
 
@@ -1626,11 +1658,6 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
                     <span className="text-[11px] text-tinta-400">
                       {relativo(c.criadoEm, agora)}
                     </span>
-                    {c.perguntaPara && !c.respondidoEm && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
-                        aguardando resposta
-                      </span>
-                    )}
                   </div>
                   <p className="mt-1 text-sm text-tinta-700">{c.texto}</p>
                 </div>
@@ -1649,7 +1676,6 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
                   b.usuarios.find((u) => u.id === usuario.id)!,
                   id,
                   String(fd.get("texto") ?? ""),
-                  {},
                   ag,
                 ),
               );
@@ -1675,6 +1701,59 @@ function TelaDemanda({ ctx, id }: { ctx: Ctx; id: ID }) {
   );
 }
 
+/**
+ * Botão de aviso via WhatsApp — versão local (sem servidor).
+ *
+ * O texto é calculado direto do estado atual, com a mesma função pura que o
+ * servidor usa (`gerarResumoWhatsApp`), e `window.open` roda na mesma tarefa
+ * síncrona do clique — se esperasse a atualização de estado do React para ler
+ * o resultado, o navegador bloquearia o popup por não parecer mais uma ação
+ * direta do usuário. O registro no histórico (`aplicar`) acontece à parte,
+ * repetindo a mesma regra do serviço real: nada aqui é decorativo.
+ */
+function BotaoAvisarWhatsAppLocal({
+  ctx,
+  demandaId,
+  telefone,
+  solicitanteNome,
+}: {
+  ctx: Ctx;
+  demandaId: string;
+  telefone: string;
+  solicitanteNome: string;
+}) {
+  return (
+    <Botao
+      type="button"
+      variante="secundario"
+      onClick={() => {
+        const ctxDemanda = contextoDemanda(ctx.base, demandaId);
+        const local = ctx.base.locais.find((l) => l.id === ctxDemanda.demanda.localId);
+        const mensagem = gerarResumoWhatsApp({
+          demanda: ctxDemanda.demanda,
+          movimentos: ctxDemanda.movimentos,
+          impedimentoAtivo: ctxDemanda.impedimentos.find((i) => i.estado === "ATIVO"),
+          localNome: local?.nome,
+        });
+        window.open(paraLinkWhatsApp(telefone, mensagem), "_blank", "noopener,noreferrer");
+
+        ctx.aplicar((b, ag) => {
+          registrarNotificacaoSolicitante(
+            b,
+            b.usuarios.find((u) => u.id === ctx.usuario.id)!,
+            demandaId,
+            ag,
+          );
+          return `${solicitanteNome.split(" ")[0]} avisado(a) pelo WhatsApp.`;
+        });
+      }}
+    >
+      <MessageCircle className="size-4" strokeWidth={1.75} aria-hidden />
+      Avisar {solicitanteNome.split(" ")[0]} pelo WhatsApp
+    </Botao>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Blocos da tela de demanda
 // ---------------------------------------------------------------------------
@@ -1694,7 +1773,6 @@ function BlocoProximoMovimento({
 }) {
   const { base, aplicar, agora, usuario } = ctx;
   const [registrando, setRegistrando] = useState(false);
-  const operacao = base.usuarios.filter((u) => u.papel !== "SOLICITANTE");
 
   if (prontaParaConclusao && !movimento) {
     return (
@@ -1762,7 +1840,7 @@ function BlocoProximoMovimento({
                 <option value="" disabled>
                   Escolha
                 </option>
-                {operacao.map((u) => (
+                {base.usuarios.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.nome}
                   </option>
@@ -1917,7 +1995,7 @@ function BlocoProximoMovimento({
                 <Campo rotulo="Quem assume esta demanda?">
                   <select name="responsavelId" defaultValue="" className={classeInput}>
                     <option value="">Manter como está</option>
-                    {operacao.map((u) => (
+                    {base.usuarios.map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.nome}
                       </option>
@@ -2317,7 +2395,6 @@ function BlocoGestao({
   const podeAtribuir = pode(usuario, "atribuir_responsavel");
   const podePrioridade = pode(usuario, "ajustar_prioridade");
   if (!podeImpedir && !podeAtribuir && !podePrioridade) return null;
-  const operacao = base.usuarios.filter((u) => u.papel !== "SOLICITANTE");
 
   return (
     <Cartao className="divide-y divide-tinta-100">
@@ -2429,7 +2506,7 @@ function BlocoGestao({
                 className={classeInput}
               >
                 <option value="">Sem responsável</option>
-                {operacao.map((u) => (
+                {base.usuarios.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.nome}
                   </option>

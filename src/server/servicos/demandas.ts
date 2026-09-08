@@ -15,6 +15,7 @@ import {
   reconciliarPrioridade,
 } from "@/domain/motorPrioridade";
 import { contarReincidencias } from "@/domain/analiseHistorico";
+import { gerarResumoWhatsApp } from "@/domain/resumo";
 import { DIA } from "@/domain/regras";
 import type {
   Demanda,
@@ -50,7 +51,11 @@ export interface EntradaNovaDemanda {
   recorrenciaId?: ID;
   /** Responsável já conhecido (recorrências trazem o responsável padrão). */
   responsavelId?: ID;
-  solicitanteId?: ID;
+  /** Quem pediu — só um contato, não um usuário do sistema. */
+  solicitanteNome: string;
+  /** Telefone para o botão de WhatsApp. Vazio quando não há um contato humano
+   * (ex.: ocorrência de rotina preventiva). */
+  solicitanteTelefone?: string;
 }
 
 /**
@@ -70,6 +75,10 @@ export function abrirDemanda(
   const titulo = entrada.titulo.trim();
   if (titulo.length < 4) {
     throw new Error("Descreva a demanda em pelo menos 4 caracteres.");
+  }
+  const solicitanteNome = entrada.solicitanteNome.trim();
+  if (solicitanteNome.length < 2) {
+    throw new Error("Informe quem está solicitando.");
   }
   const categoria = acharCategoria(base, entrada.categoriaId);
   const local = base.locais.find((l) => l.id === entrada.localId);
@@ -111,7 +120,8 @@ export function abrirDemanda(
     descricao: entrada.descricao.trim(),
     localId: entrada.localId,
     categoriaId: entrada.categoriaId,
-    solicitanteId: entrada.solicitanteId ?? autor.id,
+    solicitanteNome,
+    solicitanteTelefone: entrada.solicitanteTelefone?.trim() ?? "",
     responsavelId: entrada.responsavelId,
     estado: "NOVA",
     prioridade: prioridadeCalculada(calculo, instante),
@@ -485,4 +495,48 @@ export function cancelarDemanda(
     em: instante,
   });
   reconciliarSinais(base, instante);
+}
+
+// ---------------------------------------------------------------------------
+// Notificação ao solicitante
+// ---------------------------------------------------------------------------
+
+/**
+ * Gera o texto de atualização para o solicitante e registra que ele foi
+ * avisado — a mensagem em si é entregue por fora (o botão de WhatsApp na
+ * tela), este serviço só decide o conteúdo e deixa o rastro no histórico.
+ *
+ * O texto é montado aqui, a partir do estado real da demanda, nunca aceito
+ * do cliente: evita mensagem desatualizada ou adulterada, e garante que
+ * qualquer canal futuro (SMS, e-mail) reaproveite a mesma lógica.
+ */
+export function registrarNotificacaoSolicitante(
+  base: BaseDados,
+  autor: Usuario,
+  demandaId: ID,
+  instante: Instante = agoraFn(),
+): string {
+  const ctx = contextoDemanda(base, demandaId);
+  if (!ctx.demanda.solicitanteTelefone) {
+    throw new Error("Esta demanda não tem telefone do solicitante cadastrado.");
+  }
+  const local = base.locais.find((l) => l.id === ctx.demanda.localId);
+
+  const mensagem = gerarResumoWhatsApp({
+    demanda: ctx.demanda,
+    movimentos: ctx.movimentos,
+    impedimentoAtivo: ctx.impedimentos.find((i) => i.estado === "ATIVO"),
+    localNome: local?.nome,
+  });
+
+  registrarEvento(base, {
+    demandaId,
+    tipo: "NOTIFICACAO_ENVIADA",
+    descricao: `${ctx.demanda.solicitanteNome} avisado(a) pelo WhatsApp`,
+    autorId: autor.id,
+    dados: { mensagem },
+    em: instante,
+  });
+
+  return mensagem;
 }

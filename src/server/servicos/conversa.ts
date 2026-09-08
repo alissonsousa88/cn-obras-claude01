@@ -1,9 +1,9 @@
 /**
  * Comentários e anexos.
  *
- * Comentários não são bate-papo solto: uma pergunta dirigida ao solicitante
- * vira uma pendência rastreável (gera sinal de retorno necessário se ficar sem
- * resposta).
+ * Comentário é conversa interna da equipe — o solicitante não tem acesso ao
+ * sistema, então não lê nem escreve aqui. O contato com ele acontece pelo
+ * botão de WhatsApp da tela de demanda (`gerarResumoWhatsApp`).
  */
 import type { Anexo, Comentario, ID, Instante, Usuario } from "@/domain/tipos";
 import type { BaseDados } from "../store/port";
@@ -15,21 +15,10 @@ export function comentar(
   autor: Usuario,
   demandaId: ID,
   texto: string,
-  opcoes: { visivelSolicitante?: boolean; perguntaPara?: ID } = {},
   instante: Instante = agoraFn(),
 ): Comentario {
   acharDemanda(base, demandaId);
   if (texto.trim().length < 2) throw new Error("Escreva alguma coisa.");
-
-  // Uma pergunta dirigida a alguém encerra as perguntas anteriores dessa pessoa
-  // que já foram respondidas implicitamente por este comentário.
-  if (autor.papel === "SOLICITANTE") {
-    for (const c of base.comentarios) {
-      if (c.demandaId === demandaId && c.perguntaPara === autor.id && !c.respondidoEm) {
-        c.respondidoEm = instante;
-      }
-    }
-  }
 
   const comentario: Comentario = {
     id: novoId(),
@@ -37,19 +26,14 @@ export function comentar(
     autorId: autor.id,
     texto: texto.trim(),
     criadoEm: instante,
-    visivelSolicitante: opcoes.visivelSolicitante ?? true,
-    perguntaPara: opcoes.perguntaPara,
   };
   base.comentarios.push(comentario);
 
   registrarEvento(base, {
     demandaId,
     tipo: "COMENTARIO_ADICIONADO",
-    descricao: comentario.perguntaPara
-      ? `Pergunta registrada: ${comentario.texto}`
-      : comentario.texto,
+    descricao: comentario.texto,
     autorId: autor.id,
-    dados: { perguntaPara: comentario.perguntaPara ?? null },
     em: instante,
   });
 

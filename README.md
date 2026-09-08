@@ -31,7 +31,10 @@ Senha de todos os perfis: `cnobras2026`
 | Liderança | `joao@cnobras.app` | A operação inteira, aprovações e métricas |
 | Equipe | `carlos@cnobras.app` | O que precisa executar, impedimentos, conclusões |
 | Equipe | `marina@cnobras.app` | Idem, com outras demandas atribuídas |
-| Solicitante | `priscila@cnobras.app` | Apenas as próprias solicitações |
+
+O solicitante não tem conta no sistema — quem abre a demanda em nome dele é a
+equipe, registrando nome e WhatsApp de contato. Quando há algo a informar, um
+botão na tela da demanda gera um resumo pronto para enviar por WhatsApp.
 
 Vale entrar com perfis diferentes: o Motor de Atenção monta um painel distinto
 para cada um, porque a pergunta "o que merece atenção agora" depende de quem
@@ -39,7 +42,7 @@ pergunta.
 
 ```bash
 npm run typecheck   # TypeScript
-npm test            # regras de domínio (15 testes)
+npm test            # regras de domínio (19 testes)
 npm run test:e2e    # ciclo completo no navegador (servidor precisa estar rodando)
 npm run seed        # recria os dados de demonstração
 ```

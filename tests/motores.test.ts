@@ -18,6 +18,7 @@ import {
   abrirDemanda,
   ajustarPrioridade,
   concluirDemanda,
+  registrarNotificacaoSolicitante,
 } from "../src/server/servicos/demandas";
 import {
   registrarImpedimento,
@@ -30,6 +31,9 @@ import type { BaseDados } from "../src/server/store/port";
 
 const AGORA = new Date("2026-06-01T09:00:00Z").getTime();
 
+/** Contato de exemplo: a solicitante não é um Usuario, é só nome e telefone. */
+const PRISCILA = { nome: "Priscila Duarte", telefone: "(11) 91234-5678" };
+
 function cenario() {
   const base = construirSeed(AGORA);
   const por = (email: string): Usuario =>
@@ -38,17 +42,25 @@ function cenario() {
     base,
     joao: por("joao"),
     carlos: por("carlos"),
-    priscila: por("priscila"),
     catId: base.categorias.find((c) => c.slug === "eletrica")!.id,
     localId: base.locais.find((l) => l.nome === "Recepção")!.id,
   };
 }
 
 function novaDemanda(c: ReturnType<typeof cenario>, titulo = "Lâmpada queimada no corredor") {
+  // O carlos (equipe) registra a demanda em nome da Priscila, que ligou
+  // avisando — ela não tem conta no sistema.
   return abrirDemanda(
     c.base,
-    c.priscila,
-    { titulo, descricao: "Lâmpada do corredor central parou de acender.", localId: c.localId, categoriaId: c.catId },
+    c.carlos,
+    {
+      titulo,
+      descricao: "Lâmpada do corredor central parou de acender.",
+      localId: c.localId,
+      categoriaId: c.catId,
+      solicitanteNome: PRISCILA.nome,
+      solicitanteTelefone: PRISCILA.telefone,
+    },
     AGORA,
   );
 }
@@ -122,8 +134,8 @@ test("demanda não conclui sem resultado registrado, e não conclui se o problem
   concluirMovimento(c.base, c.carlos, exec.id,
     { relato: "Trocado.", servicoConcluido: true }, undefined, AGORA + 2 * HORA);
   const val = pendente(c.base, d.id, "VALIDACAO")!;
-  concluirMovimento(c.base, c.priscila, val.id,
-    { relato: "Acende normalmente.", problemaResolvido: true }, undefined, AGORA + 3 * HORA);
+  concluirMovimento(c.base, c.carlos, val.id,
+    { relato: "Liguei para a Priscila: acende normalmente.", problemaResolvido: true }, undefined, AGORA + 3 * HORA);
 
   assert.throws(
     () => concluirDemanda(c.base, c.carlos, d.id,
@@ -160,8 +172,8 @@ test("validação reprovada devolve a demanda ao diagnóstico em vez de concluir
   concluirMovimento(c.base, c.carlos, exec.id,
     { relato: "Trocado.", servicoConcluido: true }, undefined, AGORA + 2 * HORA);
   const val = pendente(c.base, d.id, "VALIDACAO")!;
-  const r = concluirMovimento(c.base, c.priscila, val.id,
-    { relato: "Continua piscando.", problemaResolvido: false }, undefined, AGORA + 3 * HORA);
+  const r = concluirMovimento(c.base, c.carlos, val.id,
+    { relato: "Liguei para a Priscila: continua piscando.", problemaResolvido: false }, undefined, AGORA + 3 * HORA);
 
   assert.equal(r.criado?.tipo, "DIAGNOSTICO");
   assert.equal(r.decisao.prontoParaConclusao, false);
@@ -343,6 +355,34 @@ test("mudanças relevantes geram histórico e o histórico nunca encolhe", () =>
   assert.ok(c.base.eventos.length > antes);
 });
 
+// Notificação ao solicitante --------------------------------------------------
+test("avisar o solicitante exige telefone e fica registrado no histórico", () => {
+  const c = cenario();
+  const d = novaDemanda(c);
+
+  const semTelefone = abrirDemanda(c.base, c.carlos, {
+    titulo: "Torneira pingando na cozinha",
+    descricao: "Vazamento pequeno, mas constante.",
+    localId: c.localId,
+    categoriaId: c.catId,
+    solicitanteNome: "Alguém sem telefone cadastrado",
+  }, AGORA);
+  assert.throws(
+    () => registrarNotificacaoSolicitante(c.base, c.carlos, semTelefone.id, AGORA),
+    /telefone/i,
+  );
+
+  const mensagem = registrarNotificacaoSolicitante(c.base, c.carlos, d.id, AGORA + HORA);
+  assert.match(mensagem, /Priscila/);
+  assert.match(mensagem, /Equipe CN Obras/);
+
+  const evento = c.base.eventos.find(
+    (e) => e.tipo === "NOTIFICACAO_ENVIADA" && e.demandaId === d.id,
+  );
+  assert.ok(evento, "o aviso precisa deixar rastro no histórico");
+  assert.equal(evento!.dados.mensagem, mensagem);
+});
+
 // Regra 12 ------------------------------------------------------------------
 test("o Motor de Atenção ordena por urgência e sempre diz quem precisa agir", () => {
   const c = cenario();
@@ -396,46 +436,24 @@ test("o Motor de Atenção consolida vários sinais da mesma demanda em um cart�
   );
 });
 
-test("solicitante só enxerga sinais das próprias solicitações", () => {
-  const c = cenario();
-  const painel = montarAtencao(snapshotDe(c.base, AGORA), c.priscila);
-  const todos = [
-    ...painel.precisaDeVoce, ...painel.proximas48h,
-    ...painel.aguardandoTerceiros, ...painel.operacao,
-  ];
-  for (const item of todos) {
-    if (!item.demanda) continue;
-    assert.equal(item.demanda.solicitanteId, c.priscila.id);
-  }
-});
-
-test("os números do painel respeitam o que cada papel enxerga", () => {
+test("todo usuário logado enxerga a operação inteira — solicitante não tem conta", () => {
   const c = cenario();
   const snap = snapshotDe(c.base, AGORA);
 
-  const lideranca = montarAtencao(snap, c.joao).resumo;
-  const solicitante = montarAtencao(snap, c.priscila).resumo;
+  // João (liderança) e Carlos (equipe) são as únicas contas do sistema, e
+  // ambos têm a capacidade `ver_toda_operacao`: os números do resumo batem.
+  const doJoao = montarAtencao(snap, c.joao).resumo;
+  const doCarlos = montarAtencao(snap, c.carlos).resumo;
+  assert.ok(doJoao.acoesVencidas > 0);
+  assert.equal(doJoao.acoesVencidas, doCarlos.acoesVencidas);
+  assert.equal(doJoao.demandasBloqueadas, doCarlos.demandasBloqueadas);
+});
 
-  // A liderança vê a operação inteira.
-  assert.ok(lideranca.acoesVencidas > 0);
-
-  // O solicitante não pode receber contagens de demandas que não são dele:
-  // seria pedir que entendesse um fluxo interno que não lhe diz respeito.
-  const minhas = new Set(
-    c.base.demandas.filter((d) => d.solicitanteId === c.priscila.id).map((d) => d.id),
-  );
-  const vencidasDele = c.base.sinais.filter(
-    (s) =>
-      s.estado === "ATIVO" &&
-      s.tipo === "PRAZO_VENCIDO" &&
-      s.demandaId !== undefined &&
-      minhas.has(s.demandaId),
-  ).length;
-  assert.equal(solicitante.acoesVencidas, vencidasDele);
-  assert.ok(
-    solicitante.acoesVencidas <= lideranca.acoesVencidas,
-    "o solicitante nunca vê mais do que a liderança",
-  );
+test("a demanda registra o contato do solicitante, não uma conta do sistema", () => {
+  const c = cenario();
+  const d = novaDemanda(c);
+  assert.equal(d.solicitanteNome, PRISCILA.nome);
+  assert.equal(d.solicitanteTelefone, PRISCILA.telefone);
 });
 
 test("o painel não mostra a mesma demanda em dois blocos", () => {
@@ -444,7 +462,7 @@ test("o painel não mostra a mesma demanda em dois blocos", () => {
 
   // Reproduz a cascata do painel: cada bloco só mostra o que os anteriores
   // não mostraram. Sem ela, a mesma demanda aparecia em três blocos.
-  for (const usuario of [c.joao, c.carlos, c.priscila]) {
+  for (const usuario of [c.joao, c.carlos]) {
     const painel = montarAtencao(snap, usuario);
     const vistas = new Set<string>();
     const registrar = (id?: string) => id && vistas.add(id);
@@ -461,7 +479,7 @@ test("o painel não mostra a mesma demanda em dois blocos", () => {
     );
     for (const i of terceiros) registrar(i.sinal.demandaId);
 
-    const outras = demandasEmDestaque(snap, usuario, 4).filter(
+    const outras = demandasEmDestaque(snap, 4).filter(
       (d) => !vistas.has(d.demanda.id),
     );
 

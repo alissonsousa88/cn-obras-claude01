@@ -17,11 +17,17 @@ export type Instante = number;
 // ---------------------------------------------------------------------------
 
 /**
- * Papéis previstos no MVP. A arquitetura admite novos papéis: as permissões são
- * resolvidas por capacidade (ver `permissoes.ts`), nunca por comparação direta
- * com o papel espalhada pelo código.
+ * Papéis previstos no MVP.
+ *
+ * O solicitante NÃO é um papel do sistema: quem pede um reparo não precisa de
+ * conta nem de login. Ele é só um contato (nome + telefone) registrado na
+ * demanda — o retorno para ele acontece por fora, pelo botão de WhatsApp.
+ *
+ * A arquitetura admite novos papéis: as permissões são resolvidas por
+ * capacidade (ver `permissoes.ts`), nunca por comparação direta com o papel
+ * espalhada pelo código.
  */
-export type Papel = "SOLICITANTE" | "OPERACAO" | "LIDERANCA";
+export type Papel = "OPERACAO" | "LIDERANCA";
 
 export interface Usuario {
   id: ID;
@@ -155,7 +161,15 @@ export interface Demanda {
   descricao: string;
   localId: ID;
   categoriaId: ID;
-  solicitanteId: ID;
+  /**
+   * O solicitante é só um contato, não um usuário do sistema — ele não faz
+   * login. O telefone existe para o botão "Avisar pelo WhatsApp": é assim que
+   * o responsável mantém o solicitante informado, por fora do sistema.
+   * Vazio quando a demanda nasce de uma rotina preventiva, que não tem um
+   * solicitante humano.
+   */
+  solicitanteNome: string;
+  solicitanteTelefone: string;
   responsavelId?: ID;
   estado: EstadoDemanda;
   prioridade: Prioridade;
@@ -392,7 +406,8 @@ export type TipoEvento =
   | "SINAL_ABERTO"
   | "SINAL_RESOLVIDO"
   | "RECORRENCIA_GERADA"
-  | "REINCIDENCIA_IDENTIFICADA";
+  | "REINCIDENCIA_IDENTIFICADA"
+  | "NOTIFICACAO_ENVIADA";
 
 export interface Evento {
   id: ID;
@@ -410,17 +425,17 @@ export interface Evento {
 // Conversa e anexos
 // ---------------------------------------------------------------------------
 
+/**
+ * Comentário interno da equipe. O solicitante não lê nem escreve aqui — ele
+ * não tem acesso ao sistema. Contato com ele é sempre pelo WhatsApp (ver
+ * `gerarResumoWhatsApp` em `domain/resumo.ts`).
+ */
 export interface Comentario {
   id: ID;
   demandaId: ID;
   autorId: ID;
   texto: string;
   criadoEm: Instante;
-  /** Comentários internos não aparecem para o solicitante. */
-  visivelSolicitante: boolean;
-  /** Marca perguntas dirigidas ao solicitante — geram sinal de retorno necessário. */
-  perguntaPara?: ID;
-  respondidoEm?: Instante;
 }
 
 export interface Anexo {

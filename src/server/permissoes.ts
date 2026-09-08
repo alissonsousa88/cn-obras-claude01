@@ -22,7 +22,6 @@ export type Capacidade =
   | "ver_metricas";
 
 const MATRIZ: Record<Papel, Capacidade[]> = {
-  SOLICITANTE: ["abrir_demanda"],
   OPERACAO: [
     "abrir_demanda",
     "ver_toda_operacao",
@@ -59,8 +58,12 @@ export function exigir(usuario: Usuario, capacidade: Capacidade): void {
   }
 }
 
-/** Solicitante só enxerga as próprias demandas. */
-export function podeVerDemanda(usuario: Usuario, demanda: Demanda): boolean {
-  if (pode(usuario, "ver_toda_operacao")) return true;
-  return demanda.solicitanteId === usuario.id;
+/**
+ * Hoje todo usuário do sistema é equipe ou liderança — o solicitante não tem
+ * conta —, então isto é sempre verdadeiro. A capacidade fica pronta para um
+ * papel futuro mais restrito (ex.: um fornecedor externo vendo só as demandas
+ * dele).
+ */
+export function podeVerDemanda(usuario: Usuario, _demanda: Demanda): boolean {
+  return pode(usuario, "ver_toda_operacao");
 }

@@ -12,11 +12,8 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-const papel = v.union(
-  v.literal("SOLICITANTE"),
-  v.literal("OPERACAO"),
-  v.literal("LIDERANCA"),
-);
+// O solicitante não tem conta no sistema — só a equipe loga.
+const papel = v.union(v.literal("OPERACAO"), v.literal("LIDERANCA"));
 
 const nivelPrioridade = v.union(
   v.literal("CRITICA"),
@@ -81,7 +78,10 @@ export default defineSchema({
     descricao: v.string(),
     localId: v.id("locais"),
     categoriaId: v.id("categorias"),
-    solicitanteId: v.id("usuarios"),
+    // O solicitante não é um usuário do sistema: só um contato registrado na
+    // demanda, usado pelo botão de aviso pelo WhatsApp.
+    solicitanteNome: v.string(),
+    solicitanteTelefone: v.string(),
     responsavelId: v.optional(v.id("usuarios")),
     estado: estadoDemanda,
     prioridade: v.object({
@@ -121,7 +121,6 @@ export default defineSchema({
   })
     .index("por_estado", ["estado"])
     .index("por_responsavel", ["responsavelId"])
-    .index("por_solicitante", ["solicitanteId"])
     // Suporta a detecção de reincidência sem varrer a tabela inteira.
     .index("por_local_categoria", ["localId", "categoriaId"])
     .index("por_avanco", ["ultimoAvancoEm"]),
@@ -248,9 +247,6 @@ export default defineSchema({
     autorId: v.id("usuarios"),
     texto: v.string(),
     criadoEm: v.number(),
-    visivelSolicitante: v.boolean(),
-    perguntaPara: v.optional(v.id("usuarios")),
-    respondidoEm: v.optional(v.number()),
   }).index("por_demanda", ["demandaId"]),
 
   anexos: defineTable({

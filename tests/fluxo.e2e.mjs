@@ -61,8 +61,8 @@ async function entrar(email) {
 
 try {
   // 1 --------------------------------------------------------------------
-  await etapa("1. Abertura de demanda pelo solicitante", async () => {
-    await entrar("priscila@cnobras.app");
+  await etapa("1. Equipe abre a demanda em nome do solicitante (que não loga)", async () => {
+    await entrar("carlos@cnobras.app");
     await p.goto(`${BASE}/demandas/nova`);
     await p.fill('input[name="titulo"]', "Torneira do lavabo pingando sem parar");
     await p.selectOption('select[name="localId"]', { label: "Cozinha / cafeteria" });
@@ -71,6 +71,8 @@ try {
       'textarea[name="descricao"]',
       "A torneira do lavabo da cozinha pinga continuamente desde a semana passada.",
     );
+    await p.fill('input[name="solicitanteNome"]', "Priscila Duarte");
+    await p.fill('input[name="solicitanteTelefone"]', "(11) 91234-5678");
     await p.check('input[name="risco"]');
     await p.click('button[type="submit"]:has-text("Abrir demanda")');
     await p.waitForURL(/\/demandas\/[0-9a-f-]{36}/);
@@ -144,6 +146,7 @@ try {
     const texto = await p.locator("body").innerText();
     assert.match(texto, /Precisa da sua atenção/i);
     await p.goto(`${BASE}/atencao`);
+    await p.waitForSelector("text=/reparo do estoque não serve|Destravar/i");
     const atencao = await p.locator("body").innerText();
     assert.match(atencao, /reparo do estoque não serve|Destravar/i);
   });
@@ -169,24 +172,25 @@ try {
     await p.click('button[type="submit"]:has-text("Concluir passo")');
     await p.waitForSelector("text=/Próximo passo criado/i");
     const texto = await p.locator("body").innerText();
-    assert.match(texto, /Validar se o problema foi realmente resolvido/i);
+    assert.match(texto, /Confirmar com o solicitante se o problema foi realmente resolvido/i);
     assert.match(texto, /falta validar/i);
   });
 
   // 9, 10 ------------------------------------------------------------------
-  await etapa("9/10. Validação pelo solicitante e conclusão com resultado", async () => {
-    await entrar("priscila@cnobras.app");
-    await p.goto(urlDemanda);
-    await p.click('button:has-text("Registrar o que aconteceu")');
-    await p.fill('textarea[name="relato"]', "Passei lá hoje, não pinga mais.");
-    await p.click('label:has-text("Sim, resolvido")');
-    await p.click('button[type="submit"]:has-text("Concluir passo")');
-    // O solicitante não conclui a demanda; a tela dele passa a dizer que o
-    // que falta é o registro do resultado.
-    await p.waitForSelector("text=/Registrar o resultado para concluir/i");
-
+  await etapa("9/10. Equipe confirma com o solicitante (por fora) e conclui com resultado", async () => {
     await entrar("carlos@cnobras.app");
     await p.goto(urlDemanda);
+    await p.click('button:has-text("Registrar o que aconteceu")');
+    await p.fill(
+      'textarea[name="relato"]',
+      "Liguei para a Priscila: confirmou que não pinga mais.",
+    );
+    await p.click('label:has-text("Sim, resolvido")');
+    await p.click('button[type="submit"]:has-text("Concluir passo")');
+    // A equipe conclui a validação por conta própria; a tela passa a dizer
+    // que o que falta é o registro do resultado.
+    await p.waitForSelector("text=/Registrar o resultado para concluir/i");
+
     await p.click('button:has-text("Registrar resultado e concluir")');
     await p.fill('textarea[name="oQueFoiFeito"]', "Reparo interno da torneira substituído");
     await p.fill(
@@ -219,6 +223,25 @@ try {
     }
   });
 
+  // WhatsApp -----------------------------------------------------------------
+  await etapa("Botão de aviso pelo WhatsApp abre o link certo e fica no histórico", async () => {
+    // wa.me é um domínio externo, possivelmente inacessível no ambiente de
+    // teste — em vez de esperar a aba nova carregar, captura-se o argumento
+    // passado a window.open() diretamente, sem depender de rede.
+    await p.evaluate(() => {
+      window.__linkWhatsApp = null;
+      window.open = (url) => {
+        window.__linkWhatsApp = url;
+        return null;
+      };
+    });
+    await p.click('button:has-text("Avisar Priscila pelo WhatsApp")');
+    await p.waitForFunction(() => window.__linkWhatsApp !== null);
+    const link = await p.evaluate(() => window.__linkWhatsApp);
+    assert.match(link, /^https:\/\/wa\.me\/5511912345678\?text=/);
+    await p.waitForSelector("text=/avisado\\(a\\) pelo WhatsApp/i");
+  });
+
   // Aprovação --------------------------------------------------------------
   await etapa("Fluxo de aprovação: liderança decide e libera a execução", async () => {
     await entrar("joao@cnobras.app");
@@ -237,12 +260,16 @@ try {
   });
 
   // Permissões -------------------------------------------------------------
-  await etapa("Solicitante enxerga apenas as próprias solicitações", async () => {
-    await entrar("rafael@cnobras.app");
+  await etapa("Todo usuário logado é equipe: enxerga a operação inteira", async () => {
+    await entrar("joao@cnobras.app");
     await p.goto(`${BASE}/demandas`);
     const texto = await p.locator("body").innerText();
-    assert.doesNotMatch(texto, /Cadeiras quebradas/i, "viu demanda de outro solicitante");
+    // O solicitante não tem conta — só a equipe loga, e a equipe vê tudo,
+    // não só o que ela mesma abriu ou resolveu.
     assert.match(texto, /Ar-condicionado|Porta do estacionamento|Repintar/i);
+    await p.goto(`${BASE}/demandas?estado=CONCLUIDA&concluidas=1`);
+    const concluidas = await p.locator("body").innerText();
+    assert.match(concluidas, /Torneira do lavabo/i);
   });
 
   // Mobile -----------------------------------------------------------------

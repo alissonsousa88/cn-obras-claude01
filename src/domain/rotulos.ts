@@ -88,7 +88,6 @@ export const ROTULO_NIVEL_SINAL: Record<NivelSinal, string> = {
 };
 
 export const ROTULO_PAPEL: Record<Papel, string> = {
-  SOLICITANTE: "Solicitante",
   OPERACAO: "Equipe operacional",
   LIDERANCA: "Liderança",
 };
@@ -117,4 +116,5 @@ export const ROTULO_EVENTO: Record<TipoEvento, string> = {
   SINAL_RESOLVIDO: "Sinal resolvido",
   RECORRENCIA_GERADA: "Nova ocorrência programada",
   REINCIDENCIA_IDENTIFICADA: "Reincidência identificada",
+  NOTIFICACAO_ENVIADA: "Solicitante avisado pelo WhatsApp",
 };

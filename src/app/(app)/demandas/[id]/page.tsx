@@ -14,6 +14,7 @@
  *   8. Histórico — por último, deliberadamente: o passado nunca compete com o presente
  */
 import { notFound } from "next/navigation";
+import { BotaoAvisarWhatsApp } from "@/componentes/demanda/BotaoAvisarWhatsApp";
 import { CaixaConcluirDemanda } from "@/componentes/demanda/CaixaConcluirDemanda";
 import { CaixaImpedimento } from "@/componentes/demanda/CaixaImpedimento";
 import { CaixaProximoMovimento } from "@/componentes/demanda/CaixaProximoMovimento";
@@ -236,9 +237,21 @@ export default async function PaginaDemanda({
           <p className="whitespace-pre-line text-sm text-tinta-700">
             {d.demanda.descricao || "Sem descrição adicional."}
           </p>
-          <p className="mt-3 border-t border-tinta-100 pt-3 text-xs text-tinta-500">
-            Solicitado por {d.solicitante?.nome} em {dataHora(d.demanda.criadoEm)}
-          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-tinta-100 pt-3">
+            <p className="text-xs text-tinta-500">
+              Solicitado por {d.demanda.solicitanteNome} em {dataHora(d.demanda.criadoEm)}
+              {d.demanda.solicitanteTelefone && (
+                <span className="numerico"> · {d.demanda.solicitanteTelefone}</span>
+              )}
+            </p>
+            {d.demanda.solicitanteTelefone && (
+              <BotaoAvisarWhatsApp
+                demandaId={d.demanda.id}
+                telefone={d.demanda.solicitanteTelefone}
+                solicitanteNome={d.demanda.solicitanteNome}
+              />
+            )}
+          </div>
         </Cartao>
       </section>
 
@@ -249,9 +262,6 @@ export default async function PaginaDemanda({
           autorNome: d.usuarios.find((u) => u.id === c.autorId)?.nome ?? "Alguém",
         }))}
         anexos={d.anexos}
-        usuarios={usuariosSimples}
-        podeMarcarInterno={usuario.papel !== "SOLICITANTE"}
-        solicitanteId={d.demanda.solicitanteId}
       />
 
       {/* 8. Histórico ---------------------------------------------------- */}

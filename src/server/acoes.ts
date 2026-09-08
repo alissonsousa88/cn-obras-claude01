@@ -22,6 +22,7 @@ import type {
   TipoImpedimento,
   TipoMovimento,
 } from "@/domain/tipos";
+import { paraLinkWhatsApp } from "@/lib/formato";
 import { entrar, exigirUsuario, sair } from "./auth";
 import { exigir, pode } from "./permissoes";
 import { store } from "./store/arquivoStore";
@@ -34,6 +35,7 @@ import {
   cancelarDemanda,
   concluirDemanda,
   reabrirDemanda,
+  registrarNotificacaoSolicitante,
 } from "./servicos/demandas";
 import {
   registrarImpedimento,
@@ -46,8 +48,12 @@ import {
 } from "./servicos/movimentos";
 import { alternarRecorrencia, criarRecorrencia, gerarOcorrencia } from "./servicos/recorrencias";
 
-/** Retorno padrão dos formulários. */
-export type Resultado = { erro?: string; ok?: boolean; mensagem?: string };
+/**
+ * Retorno padrão dos formulários. `link` carrega o wa.me pronto para o botão
+ * de WhatsApp abrir — Server Actions rodam no servidor e não podem chamar
+ * `window.open` diretamente.
+ */
+export type Resultado = { erro?: string; ok?: boolean; mensagem?: string; link?: string };
 
 function texto(fd: FormData, campo: string): string {
   const v = fd.get(campo);
@@ -136,6 +142,8 @@ export async function acaoAbrirDemanda(
         localId: texto(fd, "localId"),
         categoriaId: texto(fd, "categoriaId"),
         fatores,
+        solicitanteNome: texto(fd, "solicitanteNome"),
+        solicitanteTelefone: opcional(fd, "solicitanteTelefone"),
       });
       return d.id;
     });
@@ -407,15 +415,35 @@ export async function acaoComentar(
   const usuario = await exigirUsuario();
   const demandaId = texto(fd, "demandaId");
   const r = await proteger(async () => {
-    await store.transacao((base) =>
-      comentarServico(base, usuario, demandaId, texto(fd, "texto"), {
-        visivelSolicitante: !marcado(fd, "interno"),
-        perguntaPara: opcional(fd, "perguntaPara"),
-      }),
-    );
+    await store.transacao((base) => comentarServico(base, usuario, demandaId, texto(fd, "texto")));
   });
   revalidarTudo(demandaId);
   return r;
+}
+
+/**
+ * Registra que o solicitante foi avisado e devolve o link do WhatsApp já
+ * pronto — quem abre a conversa e manda a mensagem é a pessoa, não o
+ * servidor: ele só prepara o texto.
+ */
+export async function acaoNotificarSolicitante(
+  _anterior: Resultado,
+  fd: FormData,
+): Promise<Resultado> {
+  const usuario = await exigirUsuario();
+  const demandaId = texto(fd, "demandaId");
+  const telefone = texto(fd, "telefone");
+
+  let mensagem = "";
+  const r = await proteger(async () => {
+    mensagem = await store.transacao((base) =>
+      registrarNotificacaoSolicitante(base, usuario, demandaId),
+    );
+  });
+  if (r.erro) return r;
+
+  revalidarTudo(demandaId);
+  return { ok: true, link: paraLinkWhatsApp(telefone, mensagem) };
 }
 
 export async function acaoAnexar(

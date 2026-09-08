@@ -231,38 +231,19 @@ export function avaliarSinais(snap: SnapshotOperacional): SinalDesejado[] {
     );
     const validacaoAberta = abertos.some((m) => m.tipo === "VALIDACAO");
     if (execucaoConcluida && !validacaoResolvida && !validacaoAberta) {
+      // O solicitante não usa o sistema: quem confirma com ele e registra a
+      // validação é a própria equipe.
       sinais.push({
         chave: `RETORNO_NECESSARIO:${demanda.id}`,
         tipo: "RETORNO_NECESSARIO",
         nivel: "ALTO",
         assunto: demanda.titulo,
-        mensagem: "executada, mas falta validar se o problema foi resolvido",
+        mensagem: "executada, mas falta confirmar com o solicitante",
         demandaId: demanda.id,
-        destinatarioId: demanda.solicitanteId,
+        destinatarioId: demanda.responsavelId,
         dados: {},
       });
     }
-  }
-
-  // -------------------------------------------------------------------------
-  // Perguntas ao solicitante sem resposta
-  // -------------------------------------------------------------------------
-  for (const c of snap.comentarios) {
-    if (!c.perguntaPara || c.respondidoEm) continue;
-    const demanda = demandaPorId.get(c.demandaId);
-    if (!demanda || !ativa(demanda)) continue;
-    const horas = (agora - c.criadoEm) / HORA;
-    if (horas < 12) continue;
-    sinais.push({
-      chave: `RETORNO_NECESSARIO:comentario:${c.id}`,
-      tipo: "RETORNO_NECESSARIO",
-      nivel: horas > 48 ? "ALTO" : "MEDIO",
-      assunto: demanda.titulo,
-      mensagem: `pergunta sem resposta há ${Math.floor(horas)}h`,
-      demandaId: demanda.id,
-      destinatarioId: c.perguntaPara,
-      dados: { horasSemResposta: Math.floor(horas) },
-    });
   }
 
   // -------------------------------------------------------------------------

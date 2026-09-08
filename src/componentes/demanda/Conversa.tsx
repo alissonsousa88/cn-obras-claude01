@@ -3,13 +3,13 @@
 /**
  * Conversa e evidências.
  *
- * Um comentário pode ser marcado como pergunta dirigida a alguém — e aí deixa
- * de ser bate-papo: vira pendência rastreada, que gera sinal de retorno
- * necessário se ficar sem resposta.
+ * Comentário aqui é conversa interna da equipe — o solicitante não tem acesso
+ * ao sistema, não lê nem escreve nada disto. O retorno para ele é o botão de
+ * WhatsApp da tela de demanda (`BotaoAvisarWhatsApp`).
  */
 import { BotaoEnviar, Formulario, Recolhivel } from "@/componentes/Formulario";
 import { Avatar, Cartao, TituloSecao, classeInput } from "@/componentes/primitivos";
-import type { Anexo, Comentario, Papel } from "@/domain/tipos";
+import type { Anexo, Comentario } from "@/domain/tipos";
 import { dataHora, relativo } from "@/lib/formato";
 import { acaoAnexar, acaoComentar } from "@/server/acoes";
 
@@ -19,19 +19,11 @@ export function Conversa({
   demandaId,
   comentarios,
   anexos,
-  usuarios,
-  podeMarcarInterno,
-  solicitanteId,
 }: {
   demandaId: string;
   comentarios: ComentarioComAutor[];
   anexos: Anexo[];
-  usuarios: { id: string; nome: string; papel: Papel }[];
-  podeMarcarInterno: boolean;
-  solicitanteId: string;
 }) {
-  const solicitante = usuarios.find((u) => u.id === solicitanteId);
-
   return (
     <section>
       <TituloSecao contagem={comentarios.length}>Conversa e evidências</TituloSecao>
@@ -47,21 +39,6 @@ export function Conversa({
                 <div className="flex flex-wrap items-baseline gap-2">
                   <span className="text-sm font-medium text-tinta-800">{c.autorNome}</span>
                   <span className="text-[11px] text-tinta-400">{relativo(c.criadoEm)}</span>
-                  {!c.visivelSolicitante && (
-                    <span className="rounded bg-tinta-100 px-1.5 py-0.5 text-[10px] text-tinta-600">
-                      interno
-                    </span>
-                  )}
-                  {c.perguntaPara && !c.respondidoEm && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
-                      aguardando resposta
-                    </span>
-                  )}
-                  {c.perguntaPara && c.respondidoEm && (
-                    <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-800">
-                      respondida
-                    </span>
-                  )}
                 </div>
                 <p className="mt-1 whitespace-pre-line text-sm text-tinta-700">{c.texto}</p>
               </div>
@@ -76,35 +53,10 @@ export function Conversa({
               name="texto"
               required
               rows={2}
-              placeholder="Escreva um comentário ou faça uma pergunta…"
+              placeholder="Anote algo para a equipe…"
               className={classeInput}
             />
-            <div className="flex flex-wrap items-center gap-3">
-              <BotaoEnviar variante="secundario">Comentar</BotaoEnviar>
-              {podeMarcarInterno && (
-                <>
-                  <label className="flex items-center gap-1.5 text-xs text-tinta-600">
-                    <input
-                      type="checkbox"
-                      name="interno"
-                      className="rounded border-tinta-300"
-                    />
-                    Só para a equipe
-                  </label>
-                  {solicitante && (
-                    <label className="flex items-center gap-1.5 text-xs text-tinta-600">
-                      <input
-                        type="checkbox"
-                        name="perguntaPara"
-                        value={solicitante.id}
-                        className="rounded border-tinta-300"
-                      />
-                      É uma pergunta para {solicitante.nome.split(" ")[0]}
-                    </label>
-                  )}
-                </>
-              )}
-            </div>
+            <BotaoEnviar variante="secundario">Comentar</BotaoEnviar>
           </Formulario>
         </div>
       </Cartao>

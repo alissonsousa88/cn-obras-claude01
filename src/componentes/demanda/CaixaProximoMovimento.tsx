@@ -205,8 +205,6 @@ function FormularioConclusao({
   usuarios: UsuarioSimples[];
   aoCancelar: () => void;
 }) {
-  const operacao = usuarios.filter((u) => u.papel !== "SOLICITANTE");
-
   return (
     <Formulario acao={acaoConcluirMovimento} className="space-y-4">
       <input type="hidden" name="demandaId" value={demandaId} />
@@ -245,7 +243,7 @@ function FormularioConclusao({
             <Campo rotulo="Quem assume esta demanda?">
               <select name="responsavelId" defaultValue="" className={classeInput}>
                 <option value="">Manter como está</option>
-                {operacao.map((u) => (
+                {usuarios.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.nome}
                   </option>

@@ -74,7 +74,7 @@ export async function dadosPainel(usuario: Usuario): Promise<DadosPainel> {
 
   return {
     atencao: montarAtencao(snap, usuario, { limitePorBloco: 6 }),
-    destaques: demandasEmDestaque(snap, usuario, 4),
+    destaques: demandasEmDestaque(snap, 4),
     minhaOperacao: montarMinhaOperacao(snap, usuario),
     contagens: {
       novas: visiveis.filter((d) => d.estado === "NOVA" || d.estado === "EM_TRIAGEM")
@@ -211,7 +211,6 @@ export interface DetalheDemanda {
   demanda: Demanda;
   local?: Local;
   categoria: Categoria;
-  solicitante?: Usuario;
   responsavel?: Usuario;
   proximoMovimento?: Movimento;
   movimentos: Movimento[];
@@ -252,7 +251,6 @@ export async function detalheDemanda(
     demanda,
     local: base.locais.find((l) => l.id === demanda.localId),
     categoria,
-    solicitante: userPorId.get(demanda.solicitanteId),
     responsavel: demanda.responsavelId ? userPorId.get(demanda.responsavelId) : undefined,
     proximoMovimento: movimentoAtual(movimentos),
     movimentos,
@@ -264,7 +262,6 @@ export async function detalheDemanda(
       .sort((a, b) => b.criadoEm - a.criadoEm),
     comentarios: base.comentarios
       .filter((c) => c.demandaId === demandaId)
-      .filter((c) => usuario.papel !== "SOLICITANTE" || c.visivelSolicitante)
       .sort((a, b) => a.criadoEm - b.criadoEm),
     anexos: base.anexos.filter((a) => a.demandaId === demandaId),
     usuarios: base.usuarios.filter((u) => u.ativo),
